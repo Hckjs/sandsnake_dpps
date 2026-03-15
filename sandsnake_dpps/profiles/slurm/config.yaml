@@ -1,0 +1,26 @@
+# https://snakemake.github.io/snakemake-plugin-catalog/plugins/executor/slurm.html
+executor: slurm
+slurm-jobname-prefix: "ctapipe_"
+
+jobs: 100 # maximum number of simultaneously submitted jobs
+local-cores: 1 # just for small localrules if you want to use the submit-node
+latency-wait: 100
+max-jobs-per-second: 10
+max-status-checks-per-second: 1
+
+default-resources:
+  - slurm_partition=short
+
+max-threads: 8 # global maximum number of threads available to any rule
+
+slurm-status-command: sacct
+slurm-logdir: build/slurm/logs
+
+slurm-efficiency-report: true
+slurm-efficiency-report-path: build/slurm/efficiency_report
+slurm-efficiency-threshold: 0.8
+
+rerun-incomplete: true
+printshellcmds: true
+scheduler: greedy
+use-conda: true

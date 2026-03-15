@@ -1,0 +1,24 @@
+name: ssdpps
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - astropy
+  - black
+  - ctapipe
+  - ipython
+  - ipywidgets
+  - jupyter
+  - matplotlib
+  - numba
+  - numpy
+  - pandas
+  - pre-commit
+  - pytables
+  - pyyaml
+  - scipy
+  - snakemake>=8.6
+  - pip
+  - pip:
+      - vitables
+      - snakemake-executor-plugin-slurm

@@ -1,0 +1,13 @@
+name: plotting
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - ctaplot
+  - gammapy
+  - pyyaml
+  - h5py
+  - pip
+  - pip:
+      - pyirf
+      - git+https://github.com/cta-observatory/ctapipe.git@main

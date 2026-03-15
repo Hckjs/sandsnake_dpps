@@ -1,0 +1,33 @@
+include: "core/core.smk"
+
+# Plugin target registry
+PLUGIN_TARGETS = []
+
+def register_plugin_targets(targets):
+    """
+    Plugins call this to declare their final products.
+    Keeps plugin includes side-effect free w.r.t. variable name collisions.
+    """
+    if targets is None:
+        return
+    PLUGIN_TARGETS.extend(targets)
+
+
+# Load plugins (from config)
+plugins = config.get("plugins", [])
+if plugins not in (None, "", "null"):
+    for plugin in plugins:
+        include: f"plugins/{plugin}/{plugin}.smk"
+
+# Final aggregation target
+rule all:
+    """
+    One Rule to rule them all,
+    One Rule to find them,
+    One Rule to bring them all,
+    And in the workflow bind them;
+    In the land of DAGs, where shadows lie.
+    """
+    input:
+        CORE_TARGETS,
+        PLUGIN_TARGETS,

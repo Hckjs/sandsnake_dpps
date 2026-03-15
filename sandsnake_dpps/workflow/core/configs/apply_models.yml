@@ -1,0 +1,40 @@
+ApplyModels:
+  overwrite: true
+
+HDF5Merger:
+  overwrite: true
+  append: false
+  telescope_events: true
+  simulation: true
+  true_images: false
+  true_parameters: true
+  r0_waveforms: false
+  r1_waveforms: false
+  dl1_images: false
+  dl1_parameters: true
+  dl1_muon: false
+  dl2_subarray: true
+  dl2_telescope: true
+  monitoring: true
+  processing_statistics: true
+
+ParticleClassifier:
+  n_jobs: -1
+
+  stereo_combiner_cls: "StereoMeanCombiner"
+  StereoMeanCombiner: # Here you can set options for StereoMeanCombiner
+    weights: "konrad" # (e.g. which kind of weights to use).
+
+EnergyRegressor:
+  n_jobs: -1
+
+  stereo_combiner_cls: "StereoMeanCombiner"
+  StereoMeanCombiner: # Here you can set options for StereoMeanCombiner
+    weights: "konrad" # (e.g. which kind of weights to use).
+
+DispReconstructor:
+  n_jobs: -1
+
+  stereo_combiner_cls: "StereoMeanCombiner"
+  StereoMeanCombiner: # Here you can set options for StereoMeanCombiner
+    weights: "konrad" # (e.g. which kind of weights to use).

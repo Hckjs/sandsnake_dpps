@@ -1,0 +1,9 @@
+name: ctapipe
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - pip
+  - pip:
+      - pyirf
+      - git+https://github.com/cta-observatory/ctapipe.git@main

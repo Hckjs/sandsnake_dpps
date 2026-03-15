@@ -1,0 +1,10 @@
+fermi_catalogs_dir: /home/jonas/repos/sandsnake_dpps/data/FERMI_LAT
+gammapy_data_dir: /home/jonas/repos/sandsnake_dpps/data/gammapy-data
+
+fermi_targets: [
+    #"processed_sources",
+    "merged_source_significances",
+  ]
+
+fermi_inputs:
+  processed_sources: /home/jonas/repos/sandsnake_dpps/build/full_array/plugins/fermi

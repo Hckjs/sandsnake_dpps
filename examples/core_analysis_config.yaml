@@ -1,0 +1,46 @@
+run_tag: "full_array"
+user_config_dir: "/home/jonas"
+user_env_dir: "/home/jonas"
+
+targets: [
+    #"mc_simtel",
+    "mc_dl1",
+    #"mc_dl1_merged",
+    #"mc_dl2",
+    #"rf_energy_regressor",
+    #"rf_particle_classifier",
+    #"rf_geometry_reconstructor",
+    "rf_performance_plots",
+    "irfs",
+    "irfs_plots",
+    #"obs_dl1",
+    #"obs_dl2",
+    #"obs_dl3",
+  ]
+inputs:
+  mc_simtel: null
+  mc_dl1: /home/jonas/repos/sandsnake_dpps/data/CTA/mc/ctapipe/dl1
+  mc_dl1_merged: null
+  mc_dl2: null # Only if all three properties are reconstructed!
+  models: null
+  irfs: null
+  benchmarks: null
+  cuts: null
+  # TODO: Automatic selection of runs/ handling for different obs dirs
+  obs_dl1: null
+  obs_dl2: null
+  obs_dl3: null
+
+  # [zen, az]
+pointings:
+  - [20, 0]
+
+obstimes: # hours
+  - 50
+  - 5
+
+# RF training split
+train_size: 0.6
+cuts_size: 0.5
+
+plugins: null #["fermi", "stereo_combiner"]
