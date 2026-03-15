@@ -10,10 +10,12 @@ rule mc_dl1:
     # Don't add logs here. Number of DL1 files is huge, will create too many log files for snakemake to handle.
     # See https://github.com/snakemake/snakemake/issues/2969
     # log:
-    #    log = log_path(mc_dl1_provider, ".log"),
-    #    provenance = log_path(mc_dl1_provider, ".provenance"),
+    #    log = log_path(OUTPATHS["mc_dl1"], ".log"),
+    #    provenance = log_path(OUTPATHS["mc_dl1"], ".provenance"),
     # benchmark:
-    #    log_path(mc_dl1_provider, ".benchmark"),
+    #    log_path(OUTPATHS["mc_dl1"], ".benchmark"),
+    params:
+        provenance = log_path(OUTPATHS["mc_dl1"], ".provenance"),
     resources:
         mem_mb=1500,
     shell:
@@ -22,6 +24,7 @@ rule mc_dl1:
         --input {input.data} \
         --output {output} \
         --config {input.config} \
+        --provenance-log {params.provenance} \
         --progress \
         """
 
