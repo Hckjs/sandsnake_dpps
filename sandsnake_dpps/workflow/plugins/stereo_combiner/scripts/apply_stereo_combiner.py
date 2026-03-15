@@ -18,7 +18,7 @@ def main(input, output, combiner):
             "StereoDispCombiner",
             prefix="disp",
             property=ReconstructionProperty.GEOMETRY,
-            weights="konrad",
+            weights="aspect-weighted-intensity",
             sign_score_limit=0.8,
         )
     else:
@@ -26,7 +26,7 @@ def main(input, output, combiner):
             combiner,
             prefix="disp",
             property=ReconstructionProperty.GEOMETRY,
-            weights="konrad",
+            weights="aspect-weighted-intensity",
         )
 
     with (

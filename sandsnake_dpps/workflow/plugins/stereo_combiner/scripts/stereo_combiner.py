@@ -80,10 +80,10 @@ class StereoMeanCombiner(StereoCombiner):
     """
 
     weights = CaselessStrEnum(
-        ["none", "intensity", "konrad"],
+        ["none", "intensity", "aspect-weighted-intensity"],
         default_value="none",
         help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``aspect-weighted-intensity``."
         ),
     ).tag(config=True)
 
@@ -110,7 +110,7 @@ class StereoMeanCombiner(StereoCombiner):
             if self.weights == "intensity":
                 return data.hillas.intensity
 
-            if self.weights == "konrad":
+            if self.weights == "aspect-weighted-intensity":
                 return data.hillas.intensity * data.hillas.length / data.hillas.width
 
             return 1
@@ -119,7 +119,7 @@ class StereoMeanCombiner(StereoCombiner):
             if self.weights == "intensity":
                 return data["hillas_intensity"]
 
-            if self.weights == "konrad":
+            if self.weights == "aspect-weighted-intensity":
                 return (
                     data["hillas_intensity"]
                     * data["hillas_length"]
@@ -423,10 +423,10 @@ class StereoDispCombiner(StereoCombiner):
     """ """
 
     weights = CaselessStrEnum(
-        ["none", "intensity", "konrad"],
+        ["none", "intensity", "aspect-weighted-intensity"],
         default_value="none",
         help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``aspect-weighted-intensity``."
         ),
     ).tag(config=True)
 
@@ -459,7 +459,7 @@ class StereoDispCombiner(StereoCombiner):
             if self.weights == "intensity":
                 return data.hillas.intensity
 
-            if self.weights == "konrad":
+            if self.weights == "aspect-weighted-intensity":
                 return data.hillas.intensity * data.hillas.length / data.hillas.width
 
             return 1
@@ -468,7 +468,7 @@ class StereoDispCombiner(StereoCombiner):
             if self.weights == "intensity":
                 return data["hillas_intensity"]
 
-            if self.weights == "konrad":
+            if self.weights == "aspect-weighted-intensity":
                 return (
                     data["hillas_intensity"]
                     * data["hillas_length"]
@@ -711,10 +711,10 @@ class StereoKMeansCombiner(StereoCombiner):
     """ """
 
     weights = CaselessStrEnum(
-        ["none", "intensity", "konrad"],
+        ["none", "intensity", "aspect-weighted-intensity"],
         default_value="none",
         help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``aspect-weighted-intensity``."
         ),
     ).tag(config=True)
 
@@ -732,7 +732,7 @@ class StereoKMeansCombiner(StereoCombiner):
             if self.weights == "intensity":
                 return data.hillas.intensity
 
-            if self.weights == "konrad":
+            if self.weights == "aspect-weighted-intensity":
                 return data.hillas.intensity * data.hillas.length / data.hillas.width
 
             return 1
@@ -741,7 +741,7 @@ class StereoKMeansCombiner(StereoCombiner):
             if self.weights == "intensity":
                 return data["hillas_intensity"]
 
-            if self.weights == "konrad":
+            if self.weights == "aspect-weighted-intensity":
                 return (
                     data["hillas_intensity"]
                     * data["hillas_length"]
@@ -881,10 +881,10 @@ class StereoDBScanCombiner(StereoCombiner):
     """ """
 
     weights = CaselessStrEnum(
-        ["none", "intensity", "konrad"],
+        ["none", "intensity", "aspect-weighted-intensity"],
         default_value="none",
         help=(
-            "What kind of weights to use. Options: ``none``, ``intensity``, ``konrad``."
+            "What kind of weights to use. Options: ``none``, ``intensity``, ``aspect-weighted-intensity``."
         ),
     ).tag(config=True)
 
@@ -902,7 +902,7 @@ class StereoDBScanCombiner(StereoCombiner):
             if self.weights == "intensity":
                 return data.hillas.intensity
 
-            if self.weights == "konrad":
+            if self.weights == "aspect-weighted-intensity":
                 return data.hillas.intensity * data.hillas.length / data.hillas.width
 
             return 1
@@ -911,7 +911,7 @@ class StereoDBScanCombiner(StereoCombiner):
             if self.weights == "intensity":
                 return data["hillas_intensity"]
 
-            if self.weights == "konrad":
+            if self.weights == "aspect-weighted-intensity":
                 return (
                     data["hillas_intensity"]
                     * data["hillas_length"]
