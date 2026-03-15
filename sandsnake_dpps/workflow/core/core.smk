@@ -34,6 +34,8 @@ def resolve_core_targets():
         raise ValueError(
             "config['targets'] must be a mapping of target names to booleans or a list"
         )
+    if not any(enabled_targets.values()):
+        raise ValueError("At least one core target must be set to true")
 
     for t, enabled in enabled_targets.items():
         if not enabled:
