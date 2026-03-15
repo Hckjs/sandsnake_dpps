@@ -19,7 +19,7 @@ targets: [
   ]
 inputs:
   mc_simtel: null
-  mc_dl1: /home/jonas/repos/sandsnake_dpps/data/CTA/mc/ctapipe/dl1
+  mc_dl1: /home/jonas/repos/sandsnake_dpps/data/CTAO/mc/dl1/
   mc_dl1_merged: null
   mc_dl2: null # Only if all three properties are reconstructed!
   models: null

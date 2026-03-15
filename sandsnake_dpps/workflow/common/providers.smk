@@ -1,5 +1,4 @@
 from pathlib import Path
-from snakemake.io import Wildcards
 
 # ------------------------------------------------------------------
 # Helpers

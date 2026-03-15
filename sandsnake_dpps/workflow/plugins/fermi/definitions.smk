@@ -11,8 +11,8 @@ os.environ["GAMMAPY_DATA"] = str(GAMMAPY_DATA_DIR)
 
 FERMI_CATALOGS = {
     "FGL": FERMI_CATALOGS_IN_DIR / "4FGL_DR4.fit",
-    "FHL": FERMI_CATALOGS_IN_DIR / "3FHL_DR3.fit",
-    "LAC": FERMI_CATALOGS_IN_DIR / "4LAC_DR3.fits",
+    "FHL": FERMI_CATALOGS_IN_DIR / "3FHL.fit",
+    "LAC": FERMI_CATALOGS_IN_DIR / "4LAC_DR3_H.fits",
 }
 
 FERMI_OUTDIR = Path(OUTDIRS["plugins"]) / "fermi"
