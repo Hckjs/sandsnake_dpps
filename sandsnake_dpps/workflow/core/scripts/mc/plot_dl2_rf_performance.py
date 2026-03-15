@@ -6,14 +6,10 @@ import numpy as np
 from ctapipe.io import TableLoader
 import dl2_rf_performance_plots as dl2_plots
 
-# from ..scriptutils.logging import setup_logging
-
 if matplotlib.get_backend() == "pgf":
     from matplotlib.backends.backend_pgf import PdfPages
 else:
     from matplotlib.backends.backend_pdf import PdfPages
-
-# log = logging.getLogger(__name__)
 
 
 def main(
@@ -100,7 +96,6 @@ if __name__ == "__main__":
     parser.add_argument("--log-file")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
-    # setup_logging(logfile=args.log_file, verbose=args.verbose)
 
     main(
         args.gammas,

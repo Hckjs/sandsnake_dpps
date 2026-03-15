@@ -2,21 +2,18 @@ run_tag: "full_array"
 user_config_dir: "/home/jonas"
 user_env_dir: "/home/jonas"
 
-targets: [
-    #"mc_simtel",
-    "mc_dl1",
-    #"mc_dl1_merged",
-    #"mc_dl2",
-    #"rf_energy_regressor",
-    #"rf_particle_classifier",
-    #"rf_geometry_reconstructor",
-    "rf_performance_plots",
-    "irfs",
-    "irfs_plots",
-    #"obs_dl1",
-    #"obs_dl2",
-    #"obs_dl3",
-  ]
+targets:
+  mc_simtel: false
+  mc_dl1: true
+  mc_dl1_merged: false
+  mc_dl2: false
+  rf_energy_regressor: false
+  rf_particle_classifier: false
+  rf_geometry_reconstructor: false
+  rf_performance_plots: true
+  irfs: true
+  irfs_plots: true
+
 inputs:
   mc_simtel: null
   mc_dl1: /home/jonas/repos/sandsnake_dpps/data/CTAO/mc/dl1/
@@ -26,12 +23,8 @@ inputs:
   irfs: null
   benchmarks: null
   cuts: null
-  # TODO: Automatic selection of runs/ handling for different obs dirs
-  obs_dl1: null
-  obs_dl2: null
-  obs_dl3: null
 
-  # [zen, az]
+# [zen, az]
 pointings:
   - [20, 0]
 

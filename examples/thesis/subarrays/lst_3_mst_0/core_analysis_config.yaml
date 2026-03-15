@@ -1,19 +1,16 @@
 run_tag: "lst_3_mst_0"
-targets: [
-    #"mc_simtel",
-    #"mc_dl1",
-    #"mc_dl1_merged",
-    #"mc_dl2",
-    #"rf_energy_regressor",
-    #"rf_particle_classifier",
-    #"rf_geometry_reconstructor",
-    #"rf_performance_plots",
-    "irfs",
-    "irfs_plots",
-    #"obs_dl1",
-    #"obs_dl2",
-    #"obs_dl3",
-  ]
+targets:
+  mc_simtel: false
+  mc_dl1: false
+  mc_dl1_merged: false
+  mc_dl2: false
+  rf_energy_regressor: false
+  rf_particle_classifier: false
+  rf_geometry_reconstructor: false
+  rf_performance_plots: false
+  irfs: true
+  irfs_plots: true
+
 plugins: ["fermi"] #, "stereo_combiner"]
 user_config_dir: ./examples/thesis/subarrays/lst_3_mst_0/
 user_env_dir: null
@@ -36,9 +33,6 @@ inputs:
   irfs: null
   benchmarks: null
   cuts: null
-  obs_dl1: null
-  obs_dl2: null
-  obs_dl3: null
 
 # RF training split
 train_size: 0.6

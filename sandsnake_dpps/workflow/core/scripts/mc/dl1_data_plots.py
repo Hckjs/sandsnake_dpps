@@ -2,15 +2,6 @@ from ctapipe.visualization import CameraDisplay
 import numpy as np
 
 
-## Misc Plots
-def array_layout():
-    return None
-
-
-def sim_info():
-    return None
-
-
 ## Histograms ##
 def hist_total_intensity(data, ax, **kwargs):
     bins = np.logspace(0, 7, 30)

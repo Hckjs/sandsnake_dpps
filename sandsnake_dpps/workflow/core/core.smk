@@ -4,15 +4,11 @@ include: "../common/targets.smk"
 include: "../common/providers.smk"
 include: "../common/staging.smk"
 # core rules
-# include: "rules/mc/simtel.smk"
+include: "rules/mc/simtel.smk"
 include: "rules/mc/dl1.smk"
 include: "rules/mc/train.smk"
 include: "rules/mc/dl2.smk"
 include: "rules/mc/irfs.smk"
-# TODO: Needs to be filled
-include: "rules/obs/dl1.smk"
-include: "rules/obs/dl2.smk"
-include: "rules/obs/dl3.smk"
 
 
 def check_target(target):
@@ -28,8 +24,20 @@ def check_target(target):
 # Core target resolver
 def resolve_core_targets():
     targets = TARGETS_ENVS()
+    config_targets = config.get("targets", {})
 
-    for t in config.get("targets", []):
+    if isinstance(config_targets, list):
+        enabled_targets = {target: True for target in config_targets}
+    elif isinstance(config_targets, dict):
+        enabled_targets = config_targets
+    else:
+        raise ValueError(
+            "config['targets'] must be a mapping of target names to booleans or a list"
+        )
+
+    for t, enabled in enabled_targets.items():
+        if not enabled:
+            continue
         if t == "mc_simtel":
             check_target(t)
             targets.append(TARGETS_MC_SIMTEL("core", resolve=True))
