@@ -15,7 +15,7 @@ rule mc_dl1:
     # benchmark:
     #    log_path(OUTPATHS["mc_dl1"], ".benchmark"),
     params:
-        provenance = log_path(OUTPATHS["mc_dl1"], ".provenance"),
+        provenance=log_path(OUTPATHS["mc_dl1"], ".provenance"),
     resources:
         mem_mb=1500,
     shell:
