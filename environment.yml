@@ -4,6 +4,6 @@ channels:
   - bioconda
   - nodefaults
 dependencies:
-  - snakemake>=8.6.0
+  - snakemake>=9.17.1
   - pre-commit
   - snakemake-executor-plugin-slurm

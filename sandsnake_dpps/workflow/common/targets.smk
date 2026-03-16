@@ -1,8 +1,4 @@
-import os
-import glob
-import re
-import sys
-from pathlib import Path
+# Define Targets
 
 pointings = config.get("pointings")
 obstimes = config.get("obstimes")
