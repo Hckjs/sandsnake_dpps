@@ -67,12 +67,11 @@ The pipeline is controlled by a YAML configuration and then resolved by Snakemak
 
 ## 3. Prerequisites
 
-- **Snakemake** (workflow engine)
 - **Conda or Mamba** (environment management)
 
 Available environment definitions:
 
-- `environment.yml` (project-level environment, much more than actually needed; also useful for development and testing)
+- `environment.yml` (project-level environment)
 - `sandsnake_dpps/workflow/core/envs/*.yaml` (rule-specific default core workflow environments)
 
 ### Expected input directory layout and naming
