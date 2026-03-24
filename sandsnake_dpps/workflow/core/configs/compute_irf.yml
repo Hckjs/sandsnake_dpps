@@ -49,8 +49,8 @@ DefaultTrueEnergyBins:
   true_energy_n_bins_per_decade: 10
 
 DefaultFoVOffsetBins:
-  fov_offset_min: 0.35 deg
-  fov_offset_max: 1.05 deg
+  fov_offset_min: 0 deg
+  fov_offset_max: 5 deg
   fov_offset_n_bins: 1
 
 EnergyDispersion2dMaker:
@@ -68,8 +68,8 @@ PSF3DMaker:
   # true_energy_min: 0.015 TeV
   # true_energy_max: 150 TeV
   # true_energy_n_bins_per_decade: 10
-  source_offset_min: 0.35 deg
-  source_offset_max: 1.05 deg
+  source_offset_min: 0 deg
+  source_offset_max: 5 deg
   source_offset_n_bins: 100
   # fov_offset_min: 0 deg
   # fov_offset_max: 5 deg
