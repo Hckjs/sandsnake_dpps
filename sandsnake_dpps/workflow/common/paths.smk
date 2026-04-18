@@ -139,6 +139,7 @@ OUTPATHS = {
     "benchmarks": PATHS["core:irfs"] + PATHS["core:template:benchmarks"],
     "plot_irfs": PATHS["core:plots"] + PATHS["core:template:irf_plots"],
 }
+
 # ----------------------------------------------------------------------
 # Path resolution helpers
 # ----------------------------------------------------------------------

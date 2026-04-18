@@ -1,7 +1,3 @@
-from pathlib import Path
-import re
-
-
 FERMI_DIR = PLUGINS_DIR / "fermi"
 FERMI_SCRIPTS_DIR = FERMI_DIR / "scripts"
 
