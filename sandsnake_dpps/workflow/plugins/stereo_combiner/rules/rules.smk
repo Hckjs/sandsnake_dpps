@@ -53,27 +53,25 @@ rule reapply_stereo_combiner:
 
 rule stereo_comb_optimize_cuts:
     output:
-        cuts=stereo_comb
-        / "mc/zen_20/az_0/irfs/cuts_zen_20_az_0_ac_full_array_{combiner}.fits",
+        cuts=OUTPATHS["cuts"],
     input:
-        gammas=stereo_comb
-        / "mc/zen_20/az_0/gamma_diffuse/test_cuts/gamma_diffuse_zen_20_az_0_test_cuts_ac_full_array_{combiner}.dl2.h5",
-        protons=stereo_comb
-        / "mc/zen_20/az_0/proton/test_cuts/proton_zen_20_az_0_test_cuts_ac_full_array_{combiner}.dl2.h5",
-        electrons=stereo_comb
-        / "mc/zen_20/az_0/electron/test_cuts/electron_zen_20_az_0_test_cuts_ac_full_array_{combiner}.dl2.h5",
-        config=ANALYSIS_CONFIGS["optimize_cuts_combiner"],
+        gammas=bind_wildcards(
+            mc_dl2_provider, particle="gamma_diffuse", split="test_cuts"
+        ),
+        protons=bind_wildcards(mc_dl2_provider, particle="proton", split="test_cuts"),
+        electrons=bind_wildcards(
+            mc_dl2_provider, particle="electron", split="test_cuts"
+        ),
+        config=PATHS["core:config:optimize_cuts"],
     conda:
-        ctapipe_env
+        select_env("ctapipe", "core")
     log:
-        log=logs
-        / "snakemake_stereo_comb_optimize_cuts_zen_20_az_0_ac_full_array_{combiner}.log",
-        provenance=logs
-        / "ctapipe_optimize_event_selection_zen_20_az_0_ac_full_array_{combiner}.provenance.log",
+        log=log_path(OUTPATHS["cuts"], ".log"),
+        provenance=log_path(OUTPATHS["cuts"], ".provenance"),
     benchmark:
-        benchmarks / "irfs/benchmark_stereo_comb_optimize_cuts_zen_20_az_0_ac_full_array_{combiner}.txt"
+        log_path(OUTPATHS["cuts"], ".benchmark")
     resources:
-        mem_mb=3000,
+        mem_mb=4000,
     shell:
         """
         ctapipe-optimize-event-selection \
@@ -82,6 +80,7 @@ rule stereo_comb_optimize_cuts:
             --proton-file={input.protons} \
             --electron-file={input.electrons} \
             --output={output.cuts} \
+            --EventSelectionOptimizer.obs_time="{wildcards.obstime} hour" \
             --log-file={log.log} \
             --provenance-log={log.provenance} \
             --log-level=DEBUG \
@@ -90,31 +89,27 @@ rule stereo_comb_optimize_cuts:
 
 rule stereo_comb_create_irfs:
     output:
-        irfs=stereo_comb
-        / "mc/zen_20/az_0/irfs/irfs_zen_20_az_0_ac_full_array_{combiner}.fits.gz",
-        benchmarks=stereo_comb
-        / "mc/zen_20/az_0/irfs/benchmarks_zen_20_az_0_ac_full_array_{combiner}.fits.gz",
+        irfs=OUTPATHS["irfs"],
+        benchmarks=OUTPATHS["benchmarks"],
     input:
-        gammas=stereo_comb
-        / "mc/zen_20/az_0/gamma_diffuse/test_irfs/gamma_diffuse_zen_20_az_0_test_irfs_ac_full_array_{combiner}.dl2.h5",
-        protons=stereo_comb
-        / "mc/zen_20/az_0/proton/test_irfs/proton_zen_20_az_0_test_irfs_ac_full_array_{combiner}.dl2.h5",
-        electrons=stereo_comb
-        / "mc/zen_20/az_0/electron/test_irfs/electron_zen_20_az_0_test_irfs_ac_full_array_{combiner}.dl2.h5",
-        cuts=stereo_comb
-        / "mc/zen_20/az_0/irfs/cuts_zen_20_az_0_ac_full_array_{combiner}.fits",
-        config=ANALYSIS_CONFIGS["compute_irf_combiner"],
+        gammas=bind_wildcards(
+            mc_dl2_provider, particle="gamma_diffuse", split="test_irfs"
+        ),
+        protons=bind_wildcards(mc_dl2_provider, particle="proton", split="test_irfs"),
+        electrons=bind_wildcards(
+            mc_dl2_provider, particle="electron", split="test_irfs"
+        ),
+        cuts=cuts_provider,
+        config=PATHS["core:config:compute_irf"],
     conda:
-        ctapipe_env
+        select_env("ctapipe", "core")
     log:
-        log=logs
-        / "snakemake_stereo_comb_create_irfs_zen_20_az_0_ac_full_array_{combiner}.log",
-        provenance=logs
-        / "ctapipe_compute_irf_zen_20_az_0_ac_full_array_{combiner}.provenance.log",
+        log=log_path(OUTPATHS["irfs"], ".log"),
+        provenance=log_path(OUTPATHS["irfs"], ".provenance"),
     benchmark:
-        benchmarks / "irfs/benchmark_stereo_comb_create_irfs_zen_20_az_0_ac_full_array_{combiner}.txt"
+        log_path(OUTPATHS["irfs"], ".benchmark")
     resources:
-        mem_mb=3000,
+        mem_mb=4000,
     shell:
         """
         ctapipe-compute-irf \
@@ -125,6 +120,7 @@ rule stereo_comb_create_irfs:
             --electron-file={input.electrons} \
             --output={output.irfs} \
             --benchmark-output={output.benchmarks} \
+            --IrfTool.obs_time="{wildcards.obstime} hour" \
             --log-file={log.log} \
             --provenance-log={log.provenance} \
             --log-level=DEBUG \
