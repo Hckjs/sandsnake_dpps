@@ -6,7 +6,7 @@ if USER_CONFIGS_DIR is None:
     )
 
 
-configfile: Path(USER_CONFIGS_DIR) / "stereo_combiner_config.yaml"
+configfile: Path(USER_CONFIGS_DIR) / "plugins/stereo_combiner/stereo_combiner_config.yaml"
 
 
 include: "definitions.smk"
@@ -37,10 +37,10 @@ def resolve_stereo_combiner_targets():
     for t, enabled in enabled_targets.items():
         if not enabled:
             continue
-        if t == "":
-            stereo_combiner_targets.append()
-        if t == "":
-            stereo_combiner_targets.append()
+        if t == "plot_reco_lon_lat":
+            stereo_combiner_targets.append(PATHS["stereo_combiner:plot_reco_lon_lat"])
+        if t == "plot_irfs":
+            stereo_combiner_targets.append(PATHS["stereo_combiner:plot_irfs"])
 
     return stereo_combiner_targets
 

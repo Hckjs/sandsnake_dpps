@@ -1,75 +1,52 @@
-plotting_env = ENVS["plotting"]
-ctapipe_env = ENVS["ctapipe"]
-
-scripts_stereo = SCRIPTS["stereo_combiner"]
-plots = OUTDIRS["plots"]
-
-stereo_comb = OUTDIRS["stereo_combiner"]
-models = OUTDIRS["models"]
-mc = OUTDIRS["mc"]
-logs = stereo_comb / "logs"
-benchmarks = stereo_comb / "benchmarks"
-
-
-rule stereo_combiner:
-    input:
-        theta_plot=stereo_comb
-        / "plots/irfs/zen_20/az_0/combiner_theta2_reco_lon_lat_zen_20_az_0_ac_full_array.pdf",
-        sens_plot=stereo_comb
-        / "plots/irfs/zen_20/az_0/combiner_irfs_sens_zen_20_az_0_ac_full_array.pdf",
-
-
 rule reapply_stereo_combiner:
     output:
-        data=stereo_comb
-        / "mc/zen_20/az_0/{particle}/{split}/{particle}_zen_20_az_0_{split}_ac_full_array_{combiner}.dl2.h5",
+        PATHS["stereo_combiner:mc_dl2"],
     input:
-        data=mc
-        / "zen_20/az_0/{particle}/{split}/{particle}_zen_20_az_0_{split}_ac_full_array.dl2.h5",
-        script_dependency_1=scripts_stereo / "stereo_combiner.py",
-        script_dependency_2=scripts_stereo / "telescope_event_handling.py",
-        script=scripts_stereo / "apply_stereo_combiner.py",
+        data=bind_wildcards(mc_dl2_provider, zen="20", az="180"),
+        script=STEREO_COMBINER_SCRIPTS_DIR / "apply_stereo_combiner.py",
+        sd_1=STEREO_COMBINER_SCRIPTS_DIR / "stereo_combiner.py",
+        sd_2=STEREO_COMBINER_SCRIPTS_DIR / "telescope_event_handling.py",
     params:
         combiner=lambda wildcards: wildcards.combiner,
     conda:
-        ctapipe_env
-    wildcard_constraints:
-        split="test_irfs|test_cuts|train_cl_disp|train_en",
-    benchmark:
-        benchmarks / "dl2/{particle}/{split}/benchmark_reapply_stereo_combiner_{particle}_zen_20_az_0_{split}_ac_full_array_{combiner}.txt"
+        select_env("ctapipe", "core")
     log:
-        logs
-        / "dl2/{particle}/{split}/snakemake_reapply_stereo_combiner_{particle}_zen_20_az_0_{split}_ac_full_array_{combiner}.log",
+        log=log_path(PATHS["stereo_combiner:mc_dl2"], ".log"),
+    benchmark:
+        log_path(PATHS["stereo_combiner:mc_dl2"], ".benchmark")
     resources:
         mem_mb=10000,
     shell:
         """
-        python -m scripts.stereo_combiner.apply_stereo_combiner \
+        PYTHONPATH={STEREO_COMBINER_DIR} \
+        python -m scripts.apply_stereo_combiner \
             --input {input.data}  \
-            --output {output.data} \
+            --output {output} \
             --combiner {params.combiner} \
         """
 
 
 rule stereo_comb_optimize_cuts:
     output:
-        cuts=OUTPATHS["cuts"],
+        cuts=PATHS["stereo_combiner:cuts"],
     input:
         gammas=bind_wildcards(
-            mc_dl2_provider, particle="gamma_diffuse", split="test_cuts"
+            PATHS["stereo_combiner:mc_dl2"], particle="gamma", split="test_cuts"
         ),
-        protons=bind_wildcards(mc_dl2_provider, particle="proton", split="test_cuts"),
+        protons=bind_wildcards(
+            PATHS["stereo_combiner:mc_dl2"], particle="proton", split="test_cuts"
+        ),
         electrons=bind_wildcards(
-            mc_dl2_provider, particle="electron", split="test_cuts"
+            PATHS["stereo_combiner:mc_dl2"], particle="electron", split="test_cuts"
         ),
         config=PATHS["core:config:optimize_cuts"],
     conda:
         select_env("ctapipe", "core")
     log:
-        log=log_path(OUTPATHS["cuts"], ".log"),
-        provenance=log_path(OUTPATHS["cuts"], ".provenance"),
+        log=log_path(PATHS["stereo_combiner:cuts"], ".log"),
+        provenance=log_path(PATHS["stereo_combiner:cuts"], ".provenance"),
     benchmark:
-        log_path(OUTPATHS["cuts"], ".benchmark")
+        log_path(PATHS["stereo_combiner:cuts"], ".benchmark")
     resources:
         mem_mb=4000,
     shell:
@@ -80,7 +57,6 @@ rule stereo_comb_optimize_cuts:
             --proton-file={input.protons} \
             --electron-file={input.electrons} \
             --output={output.cuts} \
-            --EventSelectionOptimizer.obs_time="{wildcards.obstime} hour" \
             --log-file={log.log} \
             --provenance-log={log.provenance} \
             --log-level=DEBUG \
@@ -89,25 +65,27 @@ rule stereo_comb_optimize_cuts:
 
 rule stereo_comb_create_irfs:
     output:
-        irfs=OUTPATHS["irfs"],
-        benchmarks=OUTPATHS["benchmarks"],
+        irfs=PATHS["stereo_combiner:irfs"],
+        benchmarks=PATHS["stereo_combiner:benchmarks"],
     input:
         gammas=bind_wildcards(
-            mc_dl2_provider, particle="gamma_diffuse", split="test_irfs"
+            PATHS["stereo_combiner:mc_dl2"], particle="gamma", split="test_irfs"
         ),
-        protons=bind_wildcards(mc_dl2_provider, particle="proton", split="test_irfs"),
+        protons=bind_wildcards(
+            PATHS["stereo_combiner:mc_dl2"], particle="proton", split="test_irfs"
+        ),
         electrons=bind_wildcards(
-            mc_dl2_provider, particle="electron", split="test_irfs"
+            PATHS["stereo_combiner:mc_dl2"], particle="electron", split="test_irfs"
         ),
-        cuts=cuts_provider,
+        cuts=PATHS["stereo_combiner:cuts"],
         config=PATHS["core:config:compute_irf"],
     conda:
         select_env("ctapipe", "core")
     log:
-        log=log_path(OUTPATHS["irfs"], ".log"),
-        provenance=log_path(OUTPATHS["irfs"], ".provenance"),
+        log=log_path(PATHS["stereo_combiner:irfs"], ".log"),
+        provenance=log_path(PATHS["stereo_combiner:irfs"], ".provenance"),
     benchmark:
-        log_path(OUTPATHS["irfs"], ".benchmark")
+        log_path(PATHS["stereo_combiner:irfs"], ".benchmark")
     resources:
         mem_mb=4000,
     shell:
@@ -120,7 +98,6 @@ rule stereo_comb_create_irfs:
             --electron-file={input.electrons} \
             --output={output.irfs} \
             --benchmark-output={output.benchmarks} \
-            --IrfTool.obs_time="{wildcards.obstime} hour" \
             --log-file={log.log} \
             --provenance-log={log.provenance} \
             --log-level=DEBUG \
@@ -129,25 +106,24 @@ rule stereo_comb_create_irfs:
 
 rule stereo_comb_plot_theta2_reco_lon_lat:
     output:
-        stereo_comb
-        / "plots/irfs/zen_20/az_0/combiner_theta2_reco_lon_lat_zen_20_az_0_ac_full_array.pdf",
+        PATHS["stereo_combiner:plot_reco_lon_lat"],
     input:
-        script=scripts_stereo / "plot_stereo_combiner_theta2_reco_lon_lat.py",
-        dependency=scripts_stereo / "stereo_combiner_plots.py",
-        data=DL2_STEREO_COMB_DATA,
-        rc=MATPLOTLIBRC,
+        data=STEREO_COMBINER_MC_DL2,
+        script=STEREO_COMBINER_SCRIPTS_DIR
+        / "plot_stereo_combiner_theta2_reco_lon_lat.py",
+        sd_1=STEREO_COMBINER_SCRIPTS_DIR / "stereo_combiner_plots.py",
     conda:
-        plotting_env
-    benchmark:
-        benchmarks / "plots/benchmark_stereo_comb_plot_theta2_reco_lon_lat_zen_20_az_0_ac_full_array.txt"
+        select_env("plotting", "core")
     log:
-        logs
-        / "plots/stereo_comb_plot_theta2_reco_lon_lat_zen_20_az_0_ac_full_array.log",
+        log_path(PATHS["stereo_combiner:plot_reco_lon_lat"], ".log"),
+    benchmark:
+        log_path(PATHS["stereo_combiner:plot_reco_lon_lat"], ".benchmark")
     resources:
         mem_mb=10000,
     shell:
         """
-        python -m scripts.stereo_combiner.plot_stereo_combiner_theta2_reco_lon_lat \
+        PYTHONPATH={WORKFLOW_DIR} \
+        python -m plugins.stereo_combiner.scripts.plot_stereo_combiner_theta2_reco_lon_lat \
         --input {input.data} \
         --output {output} \
         """
@@ -155,25 +131,24 @@ rule stereo_comb_plot_theta2_reco_lon_lat:
 
 rule stereo_comb_plot_irfs_sens:
     output:
-        stereo_comb
-        / "plots/irfs/zen_20/az_0/combiner_irfs_sens_zen_20_az_0_ac_full_array.pdf",
+        PATHS["stereo_combiner:plot_irfs"],
     input:
-        irfs=IRFS_STEREO_COMB_DATA(file_type="irfs"),
-        benchmarks=IRFS_STEREO_COMB_DATA(file_type="benchmarks"),
-        script=scripts_stereo / "plot_stereo_combiner_irfs_sens.py",
-        dependency=scripts_stereo / "stereo_combiner_plots.py",
-        rc=MATPLOTLIBRC,
+        irfs=STEREO_COMBINER_IRFS(file_type="irfs"),
+        benchmarks=STEREO_COMBINER_IRFS(file_type="benchmarks"),
+        script=STEREO_COMBINER_SCRIPTS_DIR / "plot_stereo_combiner_irfs_sens.py",
+        sd_1=STEREO_COMBINER_SCRIPTS_DIR / "stereo_combiner_plots.py",
     conda:
-        plotting_env
-    benchmark:
-        benchmarks / "plots/benchmark_stereo_comb_plot_irfs_sens_zen_20_az_0_ac_full_array.txt"
+        select_env("plotting", "core")
     log:
-        logs / "plots/stereo_comb_plot_irfs_sens_zen_20_az_0_ac_full_array.log",
+        log_path(PATHS["stereo_combiner:plot_irfs"], ".log"),
+    benchmark:
+        log_path(PATHS["stereo_combiner:plot_irfs"], ".benchmark")
     resources:
         mem_mb=2000,
     shell:
         """
-        python -m scripts.stereo_combiner.plot_stereo_combiner_irfs_sens \
+        PYTHONPATH={STEREO_COMBINER_DIR} \
+        python -m scripts.plot_stereo_combiner_irfs_sens \
         --input_irfs {input.irfs} \
         --input_benchmarks {input.benchmarks} \
         --output {output} \

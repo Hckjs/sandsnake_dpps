@@ -45,7 +45,7 @@ def resolve_fermi_targets():
         if t == "processed_sources":
             catalogs = ["4FGL_DR4", "3FHL_DR3"]
             tar = expand(
-                FERMI_PATHS["template:catalog_out_dirs"] / ".stamp", catalog=catalogs
+                PATHS["fermi:template:catalog_out_dirs"] / ".stamp", catalog=catalogs
             )
             fermi_targets.extend(tar)
 

@@ -159,8 +159,6 @@ def paths_update(namespace: str, mapping: dict):
         kk = f"{namespace}:{k}"
         if kk in PATHS:
             raise KeyError(f"PATHS key collision: {kk}")
-        if not isinstance(v, Path):
-            v = Path(v)
         PATHS[kk] = v
 
 

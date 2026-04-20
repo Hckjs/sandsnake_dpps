@@ -23,15 +23,15 @@ thesis: | $(BUILD_DIR)
 		--config build_dir="$(BUILD_DIR)" \
 		--configfile "$(THESIS_CONFIG_ROOT)/full_array/core_analysis_config.yaml" \
 		$(SNAKEFLAGS); \
-	echo "=== [2/2] Subarrays ==="; \
-	for subarray_dir in "$(THESIS_CONFIG_ROOT)"/subarrays/*; do \
-		[ -d "$$subarray_dir" ] || continue; \
-		echo "--- Subarray: $$subarray_dir ---"; \
-		snakemake $(SNAKEFILE) $(PROFILEFLAG) \
-			--config build_dir="$(BUILD_DIR)" \
-			--configfile "$$subarray_dir/core_analysis_config.yaml" \
-			$(SNAKEFLAGS); \
-	done
+	#echo "=== [2/2] Subarrays ==="; \
+	#for subarray_dir in "$(THESIS_CONFIG_ROOT)"/subarrays/*; do \
+	#	[ -d "$$subarray_dir" ] || continue; \
+	#	echo "--- Subarray: $$subarray_dir ---"; \
+	#	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
+	#		--config build_dir="$(BUILD_DIR)" \
+	#		--configfile "$$subarray_dir/core_analysis_config.yaml" \
+	#		$(SNAKEFLAGS); \
+	#done
 
 # Removes build directory
 clean:

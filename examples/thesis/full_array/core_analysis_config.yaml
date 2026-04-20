@@ -11,15 +11,16 @@ targets:
   irfs: true
   irfs_plots: true
 
-plugins: ["fermi"] #, "stereo_combiner"]
+plugins: ["fermi", "stereo_combiner"]
 user_config_dir: ./examples/thesis/full_array
 user_env_dir: null
 
 # [zen, az]
 pointings:
-  - [20, 0]
+  - [20, 180]
 
-obstimes: # hours
+obstimes:
+  # hours
   - 50
   - 5
   - 0.5
