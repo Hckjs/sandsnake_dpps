@@ -18,8 +18,8 @@ rule reapply_stereo_combiner:
         mem_mb=10000,
     shell:
         """
-        PYTHONPATH={STEREO_COMBINER_DIR} \
-        python -m scripts.apply_stereo_combiner \
+        PYTHONPATH={WORKFLOW_DIR} \
+        python -m plugins.stereo_combiner.scripts.apply_stereo_combiner \
             --input {input.data}  \
             --output {output} \
             --combiner {params.combiner} \
@@ -147,8 +147,8 @@ rule stereo_comb_plot_irfs_sens:
         mem_mb=2000,
     shell:
         """
-        PYTHONPATH={STEREO_COMBINER_DIR} \
-        python -m scripts.plot_stereo_combiner_irfs_sens \
+        PYTHONPATH={WORKFLOW_DIR} \
+        python -m plugins.stereo_combiner.scripts.plot_stereo_combiner_irfs_sens \
         --input_irfs {input.irfs} \
         --input_benchmarks {input.benchmarks} \
         --output {output} \

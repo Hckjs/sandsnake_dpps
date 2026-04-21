@@ -1,6 +1,6 @@
 run_tag: "full_array"
-user_config_dir: "/home/jonas"
-user_env_dir: "/home/jonas"
+user_config_dir: null # "/home/jonas"
+user_env_dir: null # "/home/jonas"
 
 targets:
   mc_simtel: false
@@ -26,11 +26,13 @@ inputs:
 
 # [zen, az]
 pointings:
-  - [20, 0]
+  - [20, 180]
 
-obstimes: # hours
+obstimes:
+  # hours
   - 50
   - 5
+  - 0.5
 
 # RF training split
 train_size: 0.6

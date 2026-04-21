@@ -1,4 +1,7 @@
 run_tag: "full_array"
+user_config_dir: ./examples/thesis/full_array
+user_env_dir: null
+
 targets:
   mc_simtel: false
   mc_dl1: true
@@ -11,9 +14,15 @@ targets:
   irfs: true
   irfs_plots: true
 
-plugins: ["fermi", "stereo_combiner"]
-user_config_dir: ./examples/thesis/full_array
-user_env_dir: null
+inputs:
+  mc_simtel: null
+  mc_dl1: /home/jonas/repos/sandsnake_dpps/data/CTAO/mc/dl1/
+  mc_dl1_merged: null
+  mc_dl2: null # Only if all three properties are reconstructed!
+  models: null
+  irfs: null
+  benchmarks: null
+  cuts: null
 
 # [zen, az]
 pointings:
@@ -25,16 +34,8 @@ obstimes:
   - 5
   - 0.5
 
-inputs:
-  mc_simtel: null
-  mc_dl1: /home/jonas/repos/sandsnake_dpps/data/CTAO/mc/dl1/
-  mc_dl1_merged: null
-  mc_dl2: null # Only if all three properties are reconstructed!
-  models: null
-  irfs: null
-  benchmarks: null
-  cuts: null
-
 # RF training split
 train_size: 0.6
 cuts_size: 0.5
+
+plugins: ["fermi", "stereo_combiner"]
