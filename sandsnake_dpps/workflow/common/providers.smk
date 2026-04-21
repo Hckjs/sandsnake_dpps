@@ -73,17 +73,17 @@ def mc_dl2_provider(wc):
 
 
 def rf_energy_regressor_provider(wc):
-    base = _select_input("rf_energy_regressor")
+    base = _select_input("models")
     return TARGETS_RF_ENERGY_REGRESSOR(base, resolve=False)
 
 
 def rf_particle_classifier_provider(wc):
-    base = _select_input("rf_particle_classifier")
+    base = _select_input("models")
     return TARGETS_RF_PARTICLE_CLASSIFIER(base, resolve=False)
 
 
 def rf_geometry_reconstructor_provider(wc):
-    base = _select_input("rf_geometry_reconstructor")
+    base = _select_input("models")
     return TARGETS_RF_GEOMETRY_RECONSTRUCTOR(base, resolve=False)
 
 

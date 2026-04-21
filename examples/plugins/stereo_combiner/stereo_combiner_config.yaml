@@ -1,0 +1,3 @@
+stereo_combiner_targets:
+  plot_reco_lon_lat: true
+  plot_irfs: true

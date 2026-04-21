@@ -20,7 +20,7 @@ include: "rules/mc/dl2.smk"
 include: "rules/mc/irfs.smk"
 
 
-def check_targets(enabled_targets):
+def check_core_targets(enabled_targets):
     inputs = config.get("inputs", {}) or {}
     provided_inputs = {
         key: Path(value).expanduser().resolve()
@@ -86,7 +86,7 @@ def resolve_core_targets():
     if not any(enabled_targets.values()):
         raise ValueError("At least one core target must be set to true")
 
-    check_targets(enabled_targets)
+    check_core_targets(enabled_targets)
 
     for t, enabled in enabled_targets.items():
         if not enabled:
