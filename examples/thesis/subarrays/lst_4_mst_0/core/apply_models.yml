@@ -1,0 +1,20 @@
+ApplyModels:
+  overwrite: true
+  allowed_tels: [1, 4, 3, 2]
+
+HDF5Merger:
+  overwrite: true
+  append: false
+  telescope_events: true
+  simulation: true
+  true_images: false
+  true_parameters: true
+  r0_waveforms: false
+  r1_waveforms: false
+  dl1_images: false
+  dl1_parameters: true
+  dl1_muon: false
+  dl2_subarray: true
+  dl2_telescope: true
+  monitoring: true
+  processing_statistics: true

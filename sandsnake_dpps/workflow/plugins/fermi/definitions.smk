@@ -24,6 +24,10 @@ FERMI_PATHS = {
 
 paths_update("fermi", FERMI_PATHS)
 
+PROCESS_CATALOG_CONFIG = config.get("process_catalog", {})
+REDSHIFT_PRIOR_CONFIG = config.get("redshift_priors", {})
+CATALOG_CHUNK_CONFIG = config.get("catalog_chunks", {})
+
 
 def list_source_files(catalog_dir: Path):
     return sorted(
@@ -35,7 +39,7 @@ def list_source_files(catalog_dir: Path):
 
 def get_source_files_from_checkpoint(catalog: str):
     cp = checkpoints.process_catalog.get(catalog=catalog)
-    catalog_dir = Path(cp.output[0])
+    catalog_dir = Path(cp.output.priors).parent
     return list_source_files(catalog_dir)
 
 

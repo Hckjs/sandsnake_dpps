@@ -33,7 +33,7 @@ else:
     from matplotlib.backends.backend_pdf import PdfPages
 
 from core.scripts.mc.irf_plots import add_sensitivity_comparisons
-from .process_catalog import (
+from plugins.fermi.scripts.process_catalog import (
     calc_delta_B,
     prod_site_B_declination,
     prod_site_B_inclination,
@@ -82,13 +82,13 @@ def delta_B_mc_grid(pointings):
     table = QTable(names=("zen", "az", "delta_B"), units=(u.deg, u.deg, u.deg))
 
     for zen, az in pointings:
-        alt = 90 * u.deg - zen
-        pointing = SkyCoord(alt=alt, az=az, frame=frame)
+        alt = (90 - zen) * u.deg
+        pointing = SkyCoord(alt=alt, az=az * u.deg, frame=frame)
         delta_B = calc_delta_B(
             pointing, None, prod_site_B_declination, prod_site_B_inclination
         )
 
-        table.add_row((zen, az, delta_B))
+        table.add_row((zen * u.deg, az * u.deg, delta_B))
 
     return table
 
@@ -121,6 +121,7 @@ def load_irfs(irfs_dict, bench_dict, nn_pointing):
 def get_irfs_sens(irfs, benchmarks, source_row):
     irfs_dict = create_dict(irfs)
     bench_dict = create_dict(benchmarks)
+    breakpoint()
     mc_pointings = get_zen_az_pairs(irfs_dict)
     delta_B_table = delta_B_mc_grid(mc_pointings)
     nn_pointing = get_nearest_node(
@@ -351,6 +352,7 @@ def predict_obstime(sigma_dict, sigma_target, irfs_dict):
     )
     sigma_std = np.array([sigma_dict[f"{o}h"].std() for o in obstime_str], dtype=float)
 
+    # https://arxiv.org/pdf/2505.21632v1
     def model(T, a):
         # S ~ sqrt(T)
         return a * np.sqrt(T)
@@ -373,7 +375,6 @@ def main(source, output, irfs, benchmarks):
     source_table = QTable.read(source, format="ascii.ecsv")
     source_row = source_table[0]
 
-    # TODO: interpolate IRFs?
     irfs_dict, sens_dict = get_irfs_sens(irfs, benchmarks, source_row)
 
     source_model = create_spectral_model(source_row)
@@ -385,7 +386,6 @@ def main(source, output, irfs, benchmarks):
 
     fake_table_dict = defaultdict()
     fake_sigma_dict = defaultdict()
-    # TODO:Add gamma diffusive background model for galactic sources?
     observations = get_observations(irfs_dict, pointing)
 
     spec_dataset_on_off_50h = create_spectrum_dataset_onoff(
