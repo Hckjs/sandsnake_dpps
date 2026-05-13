@@ -150,9 +150,8 @@ class SourceVisibilityCalculator:
 
         max_obstime, observable_mask = calc_max_obstime(
             source_altaz=source_altaz,
-            sun_altaz=self.grid.sun_altaz,
+            is_night=self.grid.is_night,
             alt_min=self.grid.config.alt_min,
-            astro_night=self.grid.config.astro_night,
             step_minutes=self.grid.config.step_minutes,
         )
 
@@ -364,13 +363,11 @@ def ensure_redshift_prior_input_columns(table: QTable) -> None:
 
 def calc_max_obstime(
     source_altaz: SkyCoord,
-    sun_altaz: SkyCoord,
+    is_night: np.ndarray,
     alt_min: u.Quantity,
-    astro_night: u.Quantity,
     step_minutes: u.Quantity,
 ) -> tuple[u.Quantity, np.ndarray]:
     """Calculate total observable time above alt_min during astronomical night."""
-    is_night = np.asarray(sun_altaz.alt < astro_night, dtype=bool)
     is_visible = np.asarray(source_altaz.alt > alt_min, dtype=bool)
     observable_mask = is_night & is_visible
 
@@ -706,7 +703,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--redshift-lower-quantile", type=float, default=0.16)
     parser.add_argument("--redshift-upper-quantile", type=float, default=0.84)
-    parser.add_argument("--redshift-min-sources-per-group", type=int, default=10)
+    parser.add_argument("--redshift-min-sources-per-group", type=int, default=50)
 
     return parser.parse_args()
 

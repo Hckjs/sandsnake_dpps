@@ -6,14 +6,16 @@ envvars:
 checkpoint process_catalog:
     priority: 100
     output:
-        priors=PATHS["fermi:template:catalog_out_dirs"] / "redshift_priors.ecsv",
+        priors=PATHS["fermi:template:catalog_out_dirs"] + "/redshift_priors.ecsv",
     input:
         fgl=FERMI_CATALOGS["FGL"],
         lac=FERMI_CATALOGS["LAC"],
         fhl=FERMI_CATALOGS["FHL"],
         script=FERMI_SCRIPTS_DIR / "process_catalog.py",
     params:
-        outdir=PATHS["fermi:template:catalog_out_dirs"],
+        outdir=lambda wc: PATHS["fermi:template:catalog_out_dirs"].format(
+            catalog=wc.catalog
+        ),
         start=PROCESS_CATALOG_CONFIG.get("start", "2027-04-01"),
         end=PROCESS_CATALOG_CONFIG.get("end", "2028-04-01"),
         step_minutes=PROCESS_CATALOG_CONFIG.get("step_minutes", 20.0),
@@ -43,7 +45,7 @@ rule calc_significances:
         source=fermi_source_provider,
         irfs=TARGETS_IRFS("core", resolve=True),
         benchmarks=TARGETS_BENCHMARKS("core", resolve=True),
-        priors=PATHS["fermi:template:catalog_out_dirs"] / "redshift_priors.ecsv",
+        priors=PATHS["fermi:template:catalog_out_dirs"] + "/redshift_priors.ecsv",
     params:
         irfs_template=PATHS["core:template:irfs"],
     conda:

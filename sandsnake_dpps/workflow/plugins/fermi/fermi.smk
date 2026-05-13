@@ -45,7 +45,7 @@ def resolve_fermi_targets():
         if t == "processed_sources":
             catalogs = ["4FGL_DR4", "3FHL_DR3"]
             tar = expand(
-                PATHS["fermi:template:catalog_out_dirs"] / "redshift_priors.ecsv",
+                PATHS["fermi:template:catalog_out_dirs"] + "/redshift_priors.ecsv",
                 catalog=catalogs,
             )
             fermi_targets.extend(tar)

@@ -11,15 +11,13 @@ FERMI_CATALOGS = {
     "LAC": FERMI_CATALOGS_IN_DIR / "4LAC_DR3_H.fits",
 }
 
-FERMI_OUTDIR = Path(OUTDIRS["plugins"]) / "fermi"
+FERMI_OUTDIR = OUTDIRS["plugins"] + "/fermi"
 FERMI_PATHS = {
-    "merged_source_significances": FERMI_OUTDIR / "merged_source_catalogs.h5",
-    "template:catalog_out_dirs": FERMI_OUTDIR / "{catalog}",
-    "template:sources": FERMI_OUTDIR / "{catalog}" / "{source}" / "{source}.ecsv",
+    "merged_source_significances": FERMI_OUTDIR + "/merged_source_catalogs.h5",
+    "template:catalog_out_dirs": FERMI_OUTDIR + "/{catalog}",
+    "template:sources": FERMI_OUTDIR + "/{catalog}/{source}/{source}.ecsv",
     "template:source_significances": FERMI_OUTDIR
-    / "{catalog}"
-    / "{source}"
-    / "{source}_significances.ecsv",
+    + "/{catalog}/{source}/{source}_significances.ecsv",
 }
 
 paths_update("fermi", FERMI_PATHS)
@@ -68,7 +66,7 @@ def fermi_source_significance_provider(catalog: str):
             source_files = get_source_files_from_checkpoint(catalog)
 
         new_base_source_files = [
-            FERMI_OUTDIR / f"{catalog}{str(f).split(f'/{catalog}', 1)[1]}"
+            Path(FERMI_OUTDIR) / f"{catalog}{str(f).split(f'/{catalog}', 1)[1]}"
             for f in source_files
         ]
         sigs = source_significance_files_from_sources(new_base_source_files)
