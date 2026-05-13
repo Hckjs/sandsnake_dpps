@@ -1,437 +1,928 @@
-import numpy as np
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz
-from astropy.table import QTable
-from astropy.time import Time
-import astropy.units as u
-from pathlib import Path
-import matplotlib
-import matplotlib.pyplot as plt
-import sys
-from scipy.optimize import curve_fit
-from gammapy.irf import load_irf_dict_from_file
-from gammapy.data import Observation, Observations
-from gammapy.maps import MapAxis, RegionGeom
-from gammapy.datasets import SpectrumDataset, SpectrumDatasetOnOff, Datasets
-from gammapy.makers import SpectrumDatasetMaker, SafeMaskMaker
-from gammapy.modeling.models import (
-    PowerLawSpectralModel,
-    LogParabolaSpectralModel,
-    SuperExpCutoffPowerLaw4FGLDR3SpectralModel,
-    ExpCutoffPowerLawNormSpectralModel,
-    EBLAbsorptionNormSpectralModel,
-    SkyModel,
-)
+from __future__ import annotations
 
 from collections import defaultdict
-from regions import CircleSkyRegion
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Iterable
 import re
-import logging
 
-if matplotlib.get_backend() == "pgf":
-    from matplotlib.backends.backend_pgf import PdfPages
-else:
-    from matplotlib.backends.backend_pdf import PdfPages
+import astropy.units as u
+import matplotlib.pyplot as plt
+import numpy as np
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+from astropy.table import QTable
+from astropy.time import Time
+from gammapy.data import Observation, Observations
+from gammapy.datasets import Datasets, SpectrumDataset, SpectrumDatasetOnOff
+from gammapy.irf import load_irf_dict_from_file
+from gammapy.makers import SafeMaskMaker, SpectrumDatasetMaker
+from gammapy.maps import MapAxis, RegionGeom
+from gammapy.modeling.models import (
+    EBLAbsorptionNormSpectralModel,
+    ExpCutoffPowerLawNormSpectralModel,
+    LogParabolaSpectralModel,
+    PowerLawSpectralModel,
+    SkyModel,
+    SuperExpCutoffPowerLaw4FGLDR3SpectralModel,
+)
+from regions import PointSkyRegion
+from scipy.optimize import curve_fit
 
 from core.scripts.mc.irf_plots import add_sensitivity_comparisons
-from plugins.fermi.scripts.process_catalog import (
-    calc_delta_B,
-    prod_site_B_declination,
-    prod_site_B_inclination,
+from plugins.fermi.scripts.process_catalog import VisibilityConfig, get_B_direction
+
+
+REDSHIFT_PRIOR_SCENARIOS = (
+    ("z_low", "z_q_low"),
+    ("z_med", "z_q_med"),
+    ("z_high", "z_q_high"),
 )
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
 
-obstimes = [0.5, 5.0, 50.0]
-ebl_model = "dominguez"
-ctao_north = EarthLocation.of_site("Roque de los Muchachos")
-offset = 0.7 * u.deg
-on_radius = 0.35 * u.deg  # doesnt matter for pointlike IRFs with cuts already applied
-n_off_regions = 5
-n_obs = 100
+@dataclass(frozen=True, slots=True)
+class RedshiftScenario:
+    label: str
+    redshift: float
+    source_column: str | None = None
 
 
-def parse_irf_path(path: str):
-    m = re.search(r"zen_(\d+)/az_(\d+)/.*obs_([0-9]+(?:\.[0-9]+)?)_hours", path)
-    if m is None:
-        raise ValueError(path)
+@dataclass(slots=True)
+class IRFNode:
+    site_name: str
+    location: EarthLocation
+    prod_site_B_declination: u.Quantity
+    prod_site_B_inclination: u.Quantity
+    frame: AltAz
 
-    zen = int(m.group(1))
-    az = int(m.group(2))
-    obstime = m.group(3)
+    zen: u.Quantity
+    az: u.Quantity
+    alt: u.Quantity
+    pointing: SkyCoord
+    delta_b: u.Quantity
+    sin_delta: float
+    cos_theta: float
 
-    return zen, az, obstime
+    obstime_paths_irfs: dict[float, Path]
+    obstime_paths_benchmarks: dict[float, Path]
 
-
-def create_dict(paths):
-    dd = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-
-    for p in paths:
-        zen, az, obstime = parse_irf_path(p)
-        dd[zen][az][obstime].append(p)
-
-    return dd
-
-
-def get_zen_az_pairs(zen_az_dict):
-    return sorted((zen, az) for zen, az_dict in zen_az_dict.items() for az in az_dict)
-
-
-def delta_B_mc_grid(pointings):
-    frame = AltAz(location=ctao_north, obstime=Time.now())
-    table = QTable(names=("zen", "az", "delta_B"), units=(u.deg, u.deg, u.deg))
-
-    for zen, az in pointings:
-        alt = (90 - zen) * u.deg
-        pointing = SkyCoord(alt=alt, az=az * u.deg, frame=frame)
-        delta_B = calc_delta_B(
-            pointing, None, prod_site_B_declination, prod_site_B_inclination
+    @property
+    def key(self) -> tuple[int, int]:
+        return (
+            int(self.zen.to_value(u.deg)),
+            int(self.az.to_value(u.deg)),
         )
 
-        table.add_row((zen * u.deg, az * u.deg, delta_B))
+    @property
+    def obstimes(self) -> list[float]:
+        return sorted(self.obstime_paths_irfs)
 
-    return table
+    def get_irf_path(self, obstime: float) -> Path:
+        return self.obstime_paths_irfs[float(obstime)]
 
+    def get_benchmark_path(self, obstime: float) -> Path:
+        return self.obstime_paths_benchmarks[float(obstime)]
 
-def get_nearest_node(grid_table, alt_median, delta_B_median):
-    zen_target = 90 * u.deg - alt_median
+    def load_benchmark(self, obstime: float) -> QTable:
+        return QTable.read(self.get_benchmark_path(obstime), hdu="SENSITIVITY")
 
-    zeniths = np.unique(grid_table["zen"])
-    nearest_zen = zeniths[np.argmin(np.abs(zeniths - zen_target))]
-
-    cand = grid_table[grid_table["zen"] == nearest_zen]
-    idx = np.argmin(np.abs(cand["delta_B"] - delta_B_median))
-    return (cand[idx]["zen"], cand[idx]["az"])
-
-
-def load_irfs(irfs_dict, bench_dict, nn_pointing):
-    zen, az = nn_pointing
-
-    nn_irfs_dict = defaultdict()
-    for obstime, path in irfs_dict[zen][az].items():
-        nn_irfs_dict[obstime] = load_irf_dict_from_file(path)
-
-    nn_sens_dict = defaultdict()
-    for obstime, path in bench_dict[zen][az].items():
-        nn_sens_dict[obstime] = QTable.read(path, hdu="SENSITIVITY")
-
-    return nn_irfs_dict, nn_sens_dict
+    def load_irfs(self, obstime: float):
+        return load_irf_dict_from_file(self.get_irf_path(obstime))
 
 
-def get_irfs_sens(irfs, benchmarks, source_row):
-    irfs_dict = create_dict(irfs)
-    bench_dict = create_dict(benchmarks)
-    breakpoint()
-    mc_pointings = get_zen_az_pairs(irfs_dict)
-    delta_B_table = delta_B_mc_grid(mc_pointings)
-    nn_pointing = get_nearest_node(
-        delta_B_table, source_row["alt_median"], source_row["delta_B_median"]
+class IRFCollection:
+    """
+    Collection of IRF and benchmark paths grouped into fixed (zen, az) nodes.
+
+    The site-specific properties are initialized once and copied into every
+    produced ``IRFNode`` dataclass instance.
+    """
+
+    # check common/paths.smk PATH["core:template:irfs"]
+    # currently "/zen_{zen}/az_{az}/irfs_zen_{zen}_az_{az}_obs_{obstime}_hours.fits.gz"
+    PATH_PATTERN = re.compile(
+        r"/zen_(?P<zen>\d+)/az_(?P<az>\d+)/.*obs_(?P<obstime>[0-9]+(?:\.[0-9]+)?)_hours"
     )
-    nn_irfs_dict, nn_sens_dict = load_irfs(irfs_dict, bench_dict, nn_pointing)
 
-    return nn_irfs_dict, nn_sens_dict
-
-
-def create_spectral_model(source_table):
-    spec_type = source_table["SpectrumType"]
-    sed_class = None
-    if "SED_class" in source_table.colnames:
-        sed_class = source_table["SED_class"]
-
-    # TODO: Implement Redshift bounds for sources without redshift -> 0 - 0.5 ?
-    redshift = 0
-    if "Redshift" in source_table.colnames:
-        if np.isfinite(source_table["Redshift"]):
-            redshift = source_table["Redshift"]
-
-    # Spectral Model
-    if "FHL" in source_table["Source_Name"]:
-        if spec_type == "PowerLaw":
-            spec_model = PowerLawSpectralModel(
-                amplitude=source_table["Flux_Density"] / u.ph,
-                reference=source_table["Pivot_Energy"],
-                index=source_table["PowerLaw_Index"],
-            )
-        elif spec_type == "LogParabola":
-            spec_model = LogParabolaSpectralModel(
-                amplitude=source_table["Flux_Density"] / u.ph,
-                reference=source_table["Pivot_Energy"],
-                alpha=source_table["Spectral_Index"],
-                beta=source_table["beta"],
-            )
-        else:
-            log.critical(f"Spectral Model: {spec_type} not implemented!")
-            sys.exit(1)
-
-    else:
-        if spec_type == "PowerLaw":
-            spec_model = PowerLawSpectralModel(
-                amplitude=source_table["PL_Flux_Density"] / u.ph,
-                reference=source_table["Pivot_Energy"],
-                index=source_table["PL_Index"],
-            )
-        elif spec_type == "LogParabola":
-            spec_model = LogParabolaSpectralModel(
-                amplitude=source_table["LP_Flux_Density"] / u.ph,
-                reference=source_table["Pivot_Energy"],
-                alpha=source_table["LP_Index"],
-                beta=source_table["LP_beta"],
-            )
-
-        # TODO: Better force LogParabola instead?
-        elif spec_type == "PLSuperExpCutoff":
-            spec_model = SuperExpCutoffPowerLaw4FGLDR3SpectralModel(
-                amplitude=source_table["PLEC_Flux_Density"] / u.ph,
-                reference=source_table["Pivot_Energy"],
-                index_1=source_table["PLEC_IndexS"],
-                index_2=source_table["PLEC_Exp_Index"],
-                expfactor=source_table["PLEC_ExpfactorS"],
-            )
-        else:
-            log.critical(f"Spectral Model: {spec_type} not implemented!")
-            sys.exit(1)
-
-    # TODO: Cutoff überhaupt sinvoll, wenn kein AGN? Und PL & LP gut gefittet?
-    # Energy Cutoff
-    cutoff_spec_model = None
-    if spec_type in ["PowerLaw", "LogParabola"]:
-        # or 10 TeV for all?
-        if sed_class in ["LSP", "ISP"]:
-            cutoff_energy = 0.1 * u.TeV
-        elif sed_class == "HSP":
-            cutoff_energy = 1 * u.TeV
-        else:
-            cutoff_energy = 10 * u.TeV
-
-        # corrections to observers frame
-        cutoff_energy = cutoff_energy / (1 + redshift)
-
-        cutoff_spec_model = ExpCutoffPowerLawNormSpectralModel(
-            norm=1,
-            index=0,
-            lambda_=1 / cutoff_energy,
-            alpha=1,
-            reference=cutoff_energy / 10,
+    def __init__(
+        self,
+        irf_paths: Iterable[str | Path] | None = None,
+        benchmark_paths: Iterable[str | Path] | None = None,
+        *,
+        site_name: str = "Roque de los Muchachos",
+        b_declination: u.Quantity = VisibilityConfig.prod_site_B_declination,
+        b_inclination: u.Quantity = VisibilityConfig.prod_site_B_inclination,
+    ):
+        self.site_name = site_name
+        self.location = EarthLocation.of_site(site_name)
+        self.prod_site_B_declination = b_declination
+        self.prod_site_B_inclination = b_inclination
+        self.frame = AltAz(
+            location=self.location, obstime=Time("2027-01-01T00:00:00", scale="utc")
         )
+        self.nodes: dict[tuple[int, int], IRFNode] = {}
 
-    # EBL Absorption
-    ebl_abs_model = EBLAbsorptionNormSpectralModel.read_builtin(
-        ebl_model, redshift=redshift
-    )
+        if irf_paths is not None or benchmark_paths is not None:
+            self.nodes = self.build_nodes(
+                irf_paths=() if irf_paths is None else irf_paths,
+                benchmark_paths=() if benchmark_paths is None else benchmark_paths,
+            )
 
-    model = spec_model * ebl_abs_model
-    if cutoff_spec_model is not None:
-        model = model * cutoff_spec_model
+    @property
+    def obstimes(self) -> list[float]:
+        obstimes: set[float] = set()
+        for node in self.nodes.values():
+            obstimes.update(node.obstimes)
+        return sorted(obstimes)
 
-    return SkyModel(spectral_model=model, name=source_table["Source_Name"])
+    @classmethod
+    def parse_input_path(
+        cls, path: str | Path
+    ) -> tuple[u.Quantity, u.Quantity, float, Path]:
+        path = Path(path)
+        match = cls.PATH_PATTERN.search(path.as_posix())
+        if match is None:
+            raise ValueError(f"Could not parse path: {path}")
 
+        zen = float(match.group("zen")) * u.deg
+        az = float(match.group("az")) * u.deg
+        obstime = float(match.group("obstime"))
+        return zen, az, obstime, path
 
-def index_observations_by_obstime(observations: Observations):
-    idx = defaultdict(list)
-    for obs in observations:
-        idx[obs.meta["obstime"]].append(obs)
-    return {k: Observations(v) for k, v in idx.items()}
+    def _build_pointing(
+        self, zen: u.Quantity, az: u.Quantity
+    ) -> tuple[u.Quantity, SkyCoord]:
+        alt = 90.0 * u.deg - zen
+        pointing = SkyCoord(alt=alt, az=az, frame=self.frame)
+        return alt, pointing
 
+    def _calc_delta_b(self, pointing: SkyCoord) -> u.Quantity:
+        b_vec = get_B_direction(
+            self.prod_site_B_declination,
+            self.prod_site_B_inclination,
+        )
+        los_vec = np.asarray(pointing.cartesian.xyz.value, dtype=float)
+        cos_angle = np.clip(np.dot(los_vec, b_vec), -1.0, 1.0)
+        angle = np.arccos(cos_angle) * u.rad
+        return np.abs(90.0 * u.deg - angle.to(u.deg))
 
-def get_observations(irfs_dict, pointing):
-    obs_list = []
+    def _group_paths_by_node_and_obstime(
+        self,
+        paths: Iterable[str | Path],
+    ) -> dict[tuple[int, int], dict[float, Path]]:
+        grouped: dict[tuple[int, int], dict[float, Path]] = defaultdict(dict)
 
-    for obs_id, (obstime, irfs) in enumerate(irfs_dict.items(), start=1):
-        obs = Observation.create(
-            obs_id=obs_id,
+        for path in paths:
+            zen, az, obstime, parsed_path = self.parse_input_path(path)
+            key = (int(zen.to_value(u.deg)), int(az.to_value(u.deg)))
+
+            if obstime in grouped[key]:
+                raise ValueError(
+                    f"Duplicate obstime={obstime} for node {key}: "
+                    f"{grouped[key][obstime]} and {parsed_path}"
+                )
+
+            grouped[key][obstime] = parsed_path
+
+        return dict(grouped)
+
+    def create_node(
+        self,
+        irf_paths: dict[float, Path],
+        benchmark_paths: dict[float, Path],
+    ) -> IRFNode:
+        if not irf_paths and not benchmark_paths:
+            raise ValueError("Cannot build an IRFNode without any paths")
+
+        ref_paths = irf_paths if irf_paths else benchmark_paths
+        ref_obstime = next(iter(ref_paths))
+        zen_ref, az_ref, _, _ = self.parse_input_path(ref_paths[ref_obstime])
+
+        for path in {**irf_paths, **benchmark_paths}.values():
+            zen, az, _, _ = self.parse_input_path(path)
+            if not u.isclose(zen, zen_ref) or not u.isclose(az, az_ref):
+                raise ValueError(
+                    "All paths passed to create_node() must belong to the same "
+                    f"(zen, az) node, got {(zen_ref, az_ref)} and {(zen, az)}"
+                )
+
+        alt, pointing = self._build_pointing(zen_ref, az_ref)
+        delta_b = self._calc_delta_b(pointing)
+        sin_delta = float(np.sin(delta_b.to_value(u.rad)))
+        cos_theta = float(np.cos(zen_ref.to_value(u.rad)))
+
+        return IRFNode(
+            site_name=self.site_name,
+            location=self.location,
+            prod_site_B_declination=self.prod_site_B_declination,
+            prod_site_B_inclination=self.prod_site_B_inclination,
+            frame=self.frame,
+            zen=zen_ref,
+            az=az_ref,
+            alt=alt,
             pointing=pointing,
-            livetime=float(obstime) * u.h,
-            irfs=irfs,
-            location=ctao_north,
+            delta_b=delta_b,
+            sin_delta=sin_delta,
+            cos_theta=cos_theta,
+            obstime_paths_irfs=dict(sorted(irf_paths.items())),
+            obstime_paths_benchmarks=dict(sorted(benchmark_paths.items())),
         )
-        obs.meta["obstime"] = obstime  # str
-        obs_list.append(obs)
 
-    return index_observations_by_obstime(Observations(obs_list))
+    def build_nodes(
+        self,
+        irf_paths: Iterable[str | Path],
+        benchmark_paths: Iterable[str | Path],
+    ) -> dict[tuple[int, int], IRFNode]:
+        grouped_irfs = self._group_paths_by_node_and_obstime(irf_paths)
+        grouped_benchmarks = self._group_paths_by_node_and_obstime(benchmark_paths)
 
+        all_keys = sorted(set(grouped_irfs) | set(grouped_benchmarks))
 
-def create_spectrum_dataset_onoff(observation, on_region, source_model):
-    energy_axis_reco = observation.bkg.axes["energy"]
-    energy_axis_true = MapAxis.from_energy_bounds(
-        0.3 * energy_axis_reco.edges[0],
-        3.0 * energy_axis_reco.edges[-1],
-        nbin=3 * len(energy_axis_reco.edges),
-        name="energy_true",
-    )
+        return {
+            key: self.create_node(
+                irf_paths=grouped_irfs.get(key, {}),
+                benchmark_paths=grouped_benchmarks.get(key, {}),
+            )
+            for key in all_keys
+        }
 
-    geom = RegionGeom.create(region=on_region, axes=[energy_axis_reco])
-    dataset_empty = SpectrumDataset.create(
-        geom=geom, energy_axis_true=energy_axis_true, name="obs"
-    )
-    maker = SpectrumDatasetMaker(
-        containment_correction=False,
-        use_region_center=True,
-        selection=["exposure", "edisp", "background"],
-    )
-    safe_mask_maker = SafeMaskMaker(methods=["bkg-peak"])
+    def get_nearest_node_key(
+        self,
+        cos_theta_mean: float,
+        sin_delta_mean: float,
+        weight_cos_theta: float = 1.0,
+        weight_sin_delta: float = 1.0,
+    ) -> tuple[int, int]:
+        if not self.nodes:
+            raise ValueError("No nodes available in IRFCollection")
 
-    # TODO: Create galactic lat dependent scaling factor for background?
-    # dataset.background.data *= scaling_factor
-    dataset = maker.run(dataset_empty, observation)
-    dataset = safe_mask_maker.run(dataset, observation)
+        def distance2(node: IRFNode) -> float:
+            d_cos = node.cos_theta - cos_theta_mean
+            d_sin = node.sin_delta - sin_delta_mean
+            return weight_cos_theta * d_cos**2 + weight_sin_delta * d_sin**2
 
-    dataset.models = source_model
+        best_node = min(self.nodes.values(), key=distance2)
+        return best_node.key
 
-    dataset_on_off = SpectrumDatasetOnOff.from_spectrum_dataset(
-        dataset=dataset, acceptance=1, acceptance_off=n_off_regions
-    )
-
-    return dataset_on_off
-
-
-def fake_data(dataset_on_off, source_model):
-    datasets = Datasets()
-    for idx in range(n_obs):
-        ds = dataset_on_off.copy(name=f"obs_{idx}")
-        # Dataset.copy() doesnt really work with its models - need to copy model by hand
-        ds.models = source_model.copy()
-        ds.fake(random_state=idx, npred_background=ds.npred_background())
-        ds.meta_table["OBS_ID"] = [idx]
-        datasets.append(ds)
-
-    table = datasets.info_table()
-    sigma = table["sqrt_ts"]
-
-    return table, sigma
+    def get_nearest_node(
+        self,
+        cos_theta_mean: float,
+        sin_delta_mean: float,
+        weight_cos_theta: float = 1.0,
+        weight_sin_delta: float = 1.0,
+    ) -> IRFNode:
+        return self.nodes[
+            self.get_nearest_node_key(
+                cos_theta_mean=cos_theta_mean,
+                sin_delta_mean=sin_delta_mean,
+                weight_cos_theta=weight_cos_theta,
+                weight_sin_delta=weight_sin_delta,
+            )
+        ]
 
 
-def plot_source_model(sens_dict, source_model, out_dir):
-    # TODO: Add PROD5 Sens?
-    fig, ax = plt.subplots()
-    e_lim = [5.0e-3, 5.0e2]
+class Source:
+    """
+    Single source loaded from a one-row ECSV file.
+
+    This class owns the catalog-derived source properties, redshift-scenario
+    resolution, and the corresponding spectral models. It does not own IRF,
+    dataset, fake-data, or significance-estimation state.
+    """
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        ebl_model: str = "dominguez",
+    ):
+        self.path = Path(path)
+        self.table = QTable.read(self.path, format="ascii.ecsv")
+
+        if len(self.table) != 1:
+            raise ValueError(
+                f"Expected exactly one row in source table {self.path}, "
+                f"got {len(self.table)}"
+            )
+
+        self.ebl_model = ebl_model
+
+        self.position = SkyCoord(
+            self.row["RAJ2000"],
+            self.row["DEJ2000"],
+            unit="deg",
+            frame="icrs",
+        )
+        self.origin = self.row["z_class"]
+        self.z_source = self.row["z_source"]
+        self.redshift_scenarios = self._resolve_redshift_scenarios()
+        self.spectral_models = self._create_spectral_model()
+
+    @property
+    def row(self):
+        return self.table[0]
+
+    @property
+    def name(self) -> str:
+        return str(self.row["Source_Name"])
+
+    @property
+    def redshift_by_label(self) -> dict[str, float] | None:
+        if self.redshift_scenarios is None:
+            return None
+
+        return {
+            scenario.label: scenario.redshift for scenario in self.redshift_scenarios
+        }
+
+    @property
+    def spectral_model_by_label(self) -> dict[str, SkyModel] | None:
+        if self.spectral_models is None:
+            return None
+
+        return {model.name: model for model in self.spectral_models}
+
+    @property
+    def has_redshift_scenarios(self) -> bool:
+        return bool(self.redshift_scenarios)
+
+    @property
+    def has_prior_redshift_scenarios(self) -> bool:
+        return self.z_source.startswith("prior_")
+
+    def _resolve_redshift_scenarios(self) -> list[RedshiftScenario] | None:
+        if self.has_prior_redshift_scenarios:
+            return [
+                RedshiftScenario(
+                    label=label,
+                    redshift=self.row[column],
+                    source_column=column,
+                )
+                for label, column in REDSHIFT_PRIOR_SCENARIOS
+            ]
+
+        if self.z_source == "measured":
+            return [
+                RedshiftScenario(
+                    label="z_measured",
+                    redshift=self.row["z_measured"],
+                    source_column="z_measured",
+                )
+            ]
+
+        return None
+
+    def _create_base_spectral_model(self):
+        spec_type = str(self.row["SpectrumType"])
+
+        if "FHL" in str(self.row["Source_Name"]):
+            if spec_type == "PowerLaw":
+                return PowerLawSpectralModel(
+                    amplitude=self.row["Flux_Density"] / u.ph,
+                    reference=self.row["Pivot_Energy"],
+                    index=self.row["PowerLaw_Index"],
+                )
+
+            if spec_type == "LogParabola":
+                return LogParabolaSpectralModel(
+                    amplitude=self.row["Flux_Density"] / u.ph,
+                    reference=self.row["Pivot_Energy"],
+                    alpha=self.row["Spectral_Index"],
+                    beta=self.row["beta"],
+                )
+
+            raise ValueError(
+                f"Spectral model {spec_type!r} not implemented for FHL source"
+            )
+
+        if "FGL" in str(self.row["Source_Name"]):
+            if spec_type == "PowerLaw":
+                return PowerLawSpectralModel(
+                    amplitude=self.row["PL_Flux_Density"] / u.ph,
+                    reference=self.row["Pivot_Energy"],
+                    index=self.row["PL_Index"],
+                )
+
+            if spec_type == "LogParabola" or (
+                spec_type == "PLSuperExpCutoff" and self.origin == "egal"
+            ):
+                return LogParabolaSpectralModel(
+                    amplitude=self.row["LP_Flux_Density"] / u.ph,
+                    reference=self.row["Pivot_Energy"],
+                    alpha=self.row["LP_Index"],
+                    beta=self.row["LP_beta"],
+                )
+
+            if spec_type == "PLSuperExpCutoff":
+                return SuperExpCutoffPowerLaw4FGLDR3SpectralModel(
+                    amplitude=self.row["PLEC_Flux_Density"] / u.ph,
+                    reference=self.row["Pivot_Energy"],
+                    index_1=self.row["PLEC_IndexS"],
+                    index_2=self.row["PLEC_Exp_Index"],
+                    expfactor=self.row["PLEC_ExpfactorS"],
+                )
+
+            raise ValueError(f"Spectral model {spec_type!r} not implemented")
+
+        raise ValueError(
+            f"Unknown Catalog for source name {self.name} for spectral model creation"
+        )
+
+    def _create_cutoff_model(self, redshift: float):
+        cutoff_energy = 10 * u.TeV / (1.0 + redshift)
+
+        return ExpCutoffPowerLawNormSpectralModel(
+            norm=1.0,
+            index=0.0,
+            lambda_=1.0 / cutoff_energy,
+            alpha=1.0,
+            reference=cutoff_energy / 10.0,
+        )
+
+    def _create_spectral_model(self) -> list[SkyModel] | None:
+        base_model = self._create_base_spectral_model()
+        if self.origin == "gal":
+            return [SkyModel(spectral_model=base_model, name="gal")]
+
+        if self.redshift_scenarios is None:
+            return None
+
+        spec_model = []
+        for scenario in self.redshift_scenarios:
+            ebl_model = EBLAbsorptionNormSpectralModel.read_builtin(
+                self.ebl_model,
+                redshift=scenario.redshift,
+            )
+            cutoff_model = self._create_cutoff_model(scenario.redshift)
+            spec_model.append(
+                SkyModel(
+                    spectral_model=base_model * ebl_model * cutoff_model,
+                    name=scenario.label,
+                )
+            )
+
+        return spec_model
+
+
+class SourceAnalysis:
+    """
+    Concrete analysis of one source for one IRF node.
+
+    This class combines one Source, one IRFNode, and observation-specific
+    analysis settings. It loops over the redshift-specific spectral models owned
+    by Source.
+    """
+
+    def __init__(
+        self,
+        source: Source,
+        irf_node: IRFNode,
+        output_table: QTable,
+        *,
+        offset: u.Quantity = 0.7 * u.deg,  # Needs to match IRFs
+        n_off_regions: int = 5,
+        n_fake_datasets: int = 100,
+    ):
+        self.source = source
+        self.irf_node = irf_node
+        self.output_table = output_table
+        self.offset = offset
+        self.n_off_regions = n_off_regions
+        self.n_fake_datasets = n_fake_datasets
+
+        self.pointing = self.source.position.directional_offset_by(
+            position_angle=90 * u.deg,
+            separation=self.offset,
+        )
+        self.on_region = PointSkyRegion(self.source.position)
+
+    def run(self) -> None:
+        if self.source.spectral_models is None:
+            raise ValueError("Source has no spectral model(s) to run analysis with")
+
+        self.output_table["matched_node_zen"] = [self.irf_node.zen]
+        self.output_table["matched_node_az"] = [self.irf_node.az]
+        self.output_table["matched_node_delta_b"] = [self.irf_node.delta_b]
+        self.output_table["matched_node_sin_delta"] = [self.irf_node.sin_delta]
+        self.output_table["matched_node_cos_theta"] = [self.irf_node.cos_theta]
+
+        observations = self._create_observations()
+        for spectral_model in self.source.spectral_models:
+            datasets_onoff = self.create_datasets_onoff(observations, spectral_model)
+            sigma_results = self.run_fake_studies(datasets_onoff, spectral_model)
+            obstime_results = self.estimate_obstime(sigma_results)
+            self.append_results_to_output_table(obstime_results, spectral_model.name)
+
+    @staticmethod
+    def _format_obstime(obstime: float) -> str:
+        return f"{float(obstime):g}"
+
+    def _create_observations(self) -> Observations:
+        obstimes = self.irf_node.obstimes
+
+        observations = []
+        for obs_id, obstime in enumerate(obstimes, start=1):
+            obs = Observation.create(
+                obs_id=obs_id,
+                pointing=self.pointing,
+                livetime=float(obstime) * u.h,
+                irfs=self.irf_node.load_irfs(obstime),
+                location=self.irf_node.location,
+            )
+            obs.meta["obstime"] = str(obstime)
+            observations.append(obs)
+
+        observations = Observations(observations)
+        return observations
+
+    def create_spectrum_dataset_onoff(
+        self,
+        observation: Observation,
+        spectral_model: SkyModel,
+    ) -> SpectrumDatasetOnOff:
+        energy_axis_reco = observation.bkg.axes["energy"]
+        energy_axis_true = MapAxis.from_energy_bounds(
+            0.3 * energy_axis_reco.edges[0],
+            3.0 * energy_axis_reco.edges[-1],
+            nbin=3 * len(energy_axis_reco.edges),
+            name="energy_true",
+        )
+
+        geom = RegionGeom.create(region=self.on_region, axes=[energy_axis_reco])
+        dataset_empty = SpectrumDataset.create(
+            geom=geom,
+            energy_axis_true=energy_axis_true,
+            name=f"{self.source.name}_{spectral_model.name}_{float(observation.meta['obstime']):g}h",
+        )
+
+        maker = SpectrumDatasetMaker(
+            containment_correction=False,
+            use_region_center=True,
+            selection=["exposure", "edisp", "background"],
+        )
+        safe_mask_maker = SafeMaskMaker(methods=["bkg-peak"])
+
+        dataset = maker.run(dataset_empty, observation)
+        dataset = safe_mask_maker.run(dataset, observation)
+        dataset.models = spectral_model.copy()
+
+        return SpectrumDatasetOnOff.from_spectrum_dataset(
+            dataset=dataset,
+            acceptance=1,
+            acceptance_off=self.n_off_regions,
+        )
+
+    def create_datasets_onoff(
+        self,
+        observations: Observations,
+        spectral_model: SkyModel,
+    ) -> dict[float, SpectrumDatasetOnOff]:
+        datasets_by_obstime: dict[float, SpectrumDatasetOnOff] = {}
+        for observation in observations:
+            obstime = float(observation.meta["obstime"])
+            datasets_by_obstime[obstime] = self.create_spectrum_dataset_onoff(
+                observation,
+                spectral_model,
+            )
+
+        return dict(sorted(datasets_by_obstime.items()))
+
+    def run_fake_studies(
+        self,
+        datasets_onoff: dict[float, SpectrumDatasetOnOff],
+        spectral_model: SkyModel,
+        *,
+        n_fake_datasets: int | None = None,
+    ) -> dict[float, dict[str, Any]]:
+        results: dict[float, dict[str, Any]] = {}
+        for obstime, dataset_on_off in datasets_onoff.items():
+            fake_datasets, info_table, sigma = self.fake_data(
+                dataset_on_off,
+                spectral_model,
+                n_fake_datasets=n_fake_datasets,
+            )
+
+            results[obstime] = {
+                "dataset_onoff": dataset_on_off,
+                "fake_datasets": fake_datasets,
+                "info_table": info_table,
+                "sigma": sigma,
+                "sigma_mean": float(np.mean(sigma)),
+                "sigma_std": float(np.std(sigma)),
+            }
+
+        return dict(sorted(results.items()))
+
+    def fake_data(
+        self,
+        dataset_on_off: SpectrumDatasetOnOff,
+        spectral_model: SkyModel,
+        *,
+        n_fake_datasets: int | None = None,
+    ) -> tuple[Datasets, QTable, np.ndarray]:
+        n_fake = self.n_fake_datasets if n_fake_datasets is None else n_fake_datasets
+
+        datasets = Datasets()
+        for idx in range(n_fake):
+            ds = dataset_on_off.copy(name=f"{dataset_on_off.name}_{idx}")
+            # Dataset.copy() does not reliably copy models; copy explicitly.
+            ds.models = spectral_model.copy()
+            ds.fake(random_state=idx, npred_background=ds.npred_background())
+            ds.meta_table["OBS_ID"] = [idx]
+            datasets.append(ds)
+
+        info_table = datasets.info_table()
+        sigma = np.asarray(info_table["sqrt_ts"], dtype=float)
+
+        return datasets, info_table, sigma
+
+    def estimate_obstime(
+        self,
+        results: dict[float, dict[str, Any]],
+        *,
+        max_extrapolation_factor: float = 5.0,
+    ) -> dict[str, Any]:
+        sigma_by_obstime = {
+            obstime: payload["sigma"] for obstime, payload in results.items()
+        }
+
+        obstime_5s, obstime_5s_std = self._fit_obstime_from_significance(
+            sigma_by_obstime=sigma_by_obstime,
+            sigma_target=self.output_table[0]["sigma_target"],
+        )
+
+        max_simulated_obstime = max(sigma_by_obstime)
+        if np.isfinite(obstime_5s):
+            if obstime_5s > max_extrapolation_factor * max_simulated_obstime:
+                obstime_5s = np.nan
+                obstime_5s_std = np.nan
+
+        return {
+            "obstime_5s": float(obstime_5s),
+            "obstime_5s_std": float(obstime_5s_std),
+            "results": results,
+        }
+
+    @staticmethod
+    def _fit_obstime_from_significance(
+        sigma_by_obstime: dict[float, np.ndarray],
+        sigma_target: float,
+    ) -> tuple[float, float]:
+        obstimes = np.array(sorted(sigma_by_obstime), dtype=float)
+        sigma_mean = np.array(
+            [np.mean(sigma_by_obstime[t]) for t in obstimes],
+            dtype=float,
+        )
+        sigma_std = np.array(
+            [np.std(sigma_by_obstime[t]) for t in obstimes],
+            dtype=float,
+        )
+
+        valid = np.isfinite(sigma_mean) & np.isfinite(sigma_std) & (sigma_std > 0)
+        if valid.sum() < 2:
+            return np.nan, np.nan
+
+        # S ~ sqrt(T)
+        def model(t, a):
+            return a * np.sqrt(t)
+
+        popt, pcov = curve_fit(
+            model,
+            obstimes[valid],
+            sigma_mean[valid],
+            sigma=sigma_std[valid],
+            absolute_sigma=True,
+        )
+        a = float(popt[0])
+        da = float(np.sqrt(pcov[0, 0]))
+
+        obstime_pred = (sigma_target / a) ** 2
+        obstime_std = obstime_pred * 2.0 * (da / a)
+
+        return obstime_pred, obstime_std
+
+    def append_results_to_output_table(
+        self,
+        obstime_results: dict[str, Any],
+        model_label: str,
+    ) -> None:
+        label = ""
+        if self.source.has_prior_redshift_scenarios:
+            label = f"_{model_label}"
+
+        self.output_table[f"obstime_5s{label}"] = obstime_results["obstime_5s"]
+        self.output_table[f"obstime_5s_std{label}"] = obstime_results["obstime_5s_std"]
+        for obstime, result in obstime_results["results"].items():
+            obstime_label = self._format_obstime(obstime)
+            self.output_table[f"sigma{label}_{obstime_label}h_mean"] = result[
+                "sigma_mean"
+            ]
+            self.output_table[f"sigma{label}_{obstime_label}h_std"] = result[
+                "sigma_std"
+            ]
+
+    def write(self, outpath: Path, *, overwrite: bool = True) -> None:
+        self.output_table.write(outpath, format="ascii.ecsv", overwrite=overwrite)
+
+    @staticmethod
+    def _sed_flux(model: SkyModel, energy: u.Quantity) -> u.Quantity:
+        return (energy**2 * model.spectral_model(energy)).to("erg cm-2 s-1")
+
+    def plot_source_model_with_sensitivities(
+        self,
+        *,
+        out_path: str | Path | None = None,
+        energy_bounds: u.Quantity = [0.01, 100.0] * u.TeV,
+    ):
+        if self.source.spectral_models is None:
+            raise ValueError("Source has no spectral model(s) to plot")
+
+        fig, ax = plt.subplots()
+        e_lim = [5.0e-3, 5.0e2]
+
+        for obstime in self.irf_node.obstimes:
+            sens = self.irf_node.load_benchmark(obstime)
+            energy_center = 0.5 * (sens["ENERG_LO"] + sens["ENERG_HI"])
+            xerr = 0.5 * (sens["ENERG_HI"] - sens["ENERG_LO"])
+
+            ax.errorbar(
+                energy_center.flatten(),
+                sens["ENERGY_FLUX_SENSITIVITY"].flatten(),
+                xerr=xerr,
+                ls="",
+                label=f"CTAO-N - {obstime:g}h",
+            )
+
+        if self.source.has_prior_redshift_scenarios:
+            energy = (
+                np.geomspace(
+                    energy_bounds[0].to_value(u.TeV),
+                    energy_bounds[1].to_value(u.TeV),
+                    256,
+                )
+                * u.TeV
+            )
+            y_low = self._sed_flux(self.source.spectral_model_by_label["z_low"], energy)
+            y_high = self._sed_flux(
+                self.source.spectral_model_by_label["z_high"], energy
+            )
+
+            ax.fill_between(
+                energy.to_value(u.TeV),
+                np.minimum(y_low.value, y_high.value),
+                np.maximum(y_low.value, y_high.value),
+                color="tab:blue",
+                alpha=0.15,
+                label="redshift-prior range",
+            )
+
+            for label, linestyle in [
+                ("z_low", ":"),
+                ("z_med", "-"),
+                ("z_high", "--"),
+            ]:
+                z = self.source.redshift_by_label[label]
+                self.source.spectral_model_by_label[label].spectral_model.plot(
+                    energy_bounds=energy_bounds,
+                    ax=ax,
+                    label=f"{self.source.name} {label}={z:.3g}",
+                    sed_type="e2dnde",
+                    linestyle=linestyle,
+                )
+        else:
+            self.source.spectral_models[0].spectral_model.plot(
+                energy_bounds=energy_bounds,
+                ax=ax,
+                label=self.source.name,
+                sed_type="e2dnde",
+            )
+
+        add_sensitivity_comparisons(ax, energy_limits=e_lim)
+
+        ax.set_ylim(3.0e-14, 1.0e-9)
+        ax.set_xlim(e_lim)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_title("Sensitivity")
+        ax.set_xlabel(r"$E_{True}$ / TeV")
+        ax.set_ylabel(
+            r"$E^{2} \times$ Flux Sensitivity / $erg \cdot cm^{-2} \cdot s^{-1}$"
+        )
+        ax.grid(which="both", linestyle=":")
+        ax.legend(loc="upper right", fontsize="small")
+        fig.tight_layout()
+
+        if out_path is not None:
+            fig.savefig(out_path)
+
+        return fig, ax
+
+
+def normalize_label(value) -> str:
+    if np.ma.is_masked(value):
+        return ""
+
+    if isinstance(value, bytes):
+        value = value.decode()
+
+    text = str(value).strip().lower()
+    if text in {"", "--", "nan", "none", "masked"}:
+        return ""
+
+    return text
+
+
+def source_validity_check(source: Source, output_table: QTable) -> bool:
+    if not (
+        np.isfinite(source.row["cos_theta_mean"])
+        and np.isfinite(source.row["sin_delta_mean"])
+    ):
+        output_table["status"] = ["not_observable"]
+        return False
+
+    if source.origin == "unk":
+        output_table["status"] = ["unknown_origin"]
+        return False
+
+    if not source.has_redshift_scenarios and source.origin == "egal":
+        output_table["status"] = ["no_usable_redshift"]
+        return False
+
+    return True
+
+
+def create_output_table(
+    source_table: QTable,
+    obstimes: list[float],
+    *,
+    sigma_target: float = 5.0,
+) -> QTable:
+    output_table = source_table.copy()
+
+    output_table["status"] = ["not_run"]
+    output_table["sigma_target"] = [sigma_target]
+
+    output_table["matched_node_zen"] = [np.nan * u.deg]
+    output_table["matched_node_az"] = [np.nan * u.deg]
+    output_table["matched_node_delta_b"] = [np.nan * u.deg]
+    output_table["matched_node_sin_delta"] = [np.nan]
+    output_table["matched_node_cos_theta"] = [np.nan]
+
+    for label, _ in REDSHIFT_PRIOR_SCENARIOS:
+        output_table[f"obstime_5s_{label}"] = [np.nan]
+        output_table[f"obstime_5s_std_{label}"] = [np.nan]
+
+        for obstime in obstimes:
+            obstime_label = f"{obstime:g}"
+            output_table[f"sigma_{label}_{obstime_label}h_mean"] = [np.nan]
+            output_table[f"sigma_{label}_{obstime_label}h_std"] = [np.nan]
+
+    output_table["obstime_5s"] = [np.nan]
+    output_table["obstime_5s_std"] = [np.nan]
 
     for obstime in obstimes:
-        sens = sens_dict[str(obstime)]
+        obstime_label = f"{obstime:g}"
+        output_table[f"sigma_{obstime_label}h_mean"] = [np.nan]
+        output_table[f"sigma_{obstime_label}h_std"] = [np.nan]
 
-        ax.errorbar(
-            (0.5 * (sens["ENERG_LO"] + sens["ENERG_HI"])).flatten(),
-            sens["ENERGY_FLUX_SENSITIVITY"].flatten(),
-            xerr=0.5 * (sens["ENERG_HI"] - sens["ENERG_LO"]),
-            ls="",
-            label=f"CTAO-N - {obstime}h",
-        )
 
-    # Plot Source Model
-    ax = source_model.spectral_model.plot(
-        energy_bounds=[0.01, 100] * u.TeV,
-        ax=ax,
-        label=source_model.name,
-        sed_type="e2dnde",
+def main(
+    source_path: str | Path,
+    output: str | Path,
+    irf_paths: Iterable[str | Path],
+    benchmark_paths: Iterable[str | Path],
+    *,
+    sigma_target: float = 5.0,
+) -> None:
+    outpath = Path(output)
+    outpath.parent.mkdir(parents=True, exist_ok=True)
+
+    source = Source(source_path)
+    irf_collection = IRFCollection(irf_paths=irf_paths, benchmark_paths=benchmark_paths)
+    output_table = create_output_table(
+        source.table, irf_collection.obstimes, sigma_target=sigma_target
     )
 
-    add_sensitivity_comparisons(ax, energy_limits=e_lim)
+    if not source_validity_check(source, output_table):
+        output_table.write(outpath, format="ascii.ecsv", overwrite=True)
+        return
 
-    ax.set_ylim(3.0e-14, 1.0e-9)
-    ax.set_xlim(e_lim)
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_title("Sensitivity")
-    ax.set_xlabel(r"$E_{True}$ / TeV")
-    ax.set_ylabel(r"$E^{2} \times$ Flux Sensitivity / $erg \cdot cm^{-2} \cdot s^{1}$")
-    ax.grid(which="both", linestyle=":")
-    ax.legend(loc="upper right", fontsize="small")
-
-    fig.tight_layout()
-
-    with PdfPages(out_dir / f"{source_model.name}_sensitivity.pdf") as pdf:
-        pdf.savefig(fig)
-        plt.close()
-
-
-def predict_obstime(sigma_dict, sigma_target, irfs_dict):
-    obstime_str = sorted(irfs_dict.keys(), key=float)
-    obstimes_array = np.array([float(o) for o in obstime_str], dtype=float)
-
-    sigma_mean = np.array(
-        [sigma_dict[f"{o}h"].mean() for o in obstime_str], dtype=float
+    nearest_node = irf_collection.get_nearest_node(
+        cos_theta_mean=source.row["cos_theta_mean"],
+        sin_delta_mean=source.row["sin_delta_mean"],
     )
-    sigma_std = np.array([sigma_dict[f"{o}h"].std() for o in obstime_str], dtype=float)
 
-    # https://arxiv.org/pdf/2505.21632v1
-    def model(T, a):
-        # S ~ sqrt(T)
-        return a * np.sqrt(T)
-
-    # Fit
-    popt, pcov = curve_fit(
-        model, obstimes_array, sigma_mean, sigma=sigma_std, absolute_sigma=True
+    analysis = SourceAnalysis(
+        source=source,
+        irf_node=nearest_node,
+        output_table=output_table,
     )
-    a = popt[0]
-    da = np.sqrt(pcov[0, 0])
+    analysis.run()
 
-    # Error prop: T = (S/a)^2  →  dT/T = 2 * da/a  (S fix)
-    obstime_pred = (sigma_target / a) ** 2
-    obstime_std = obstime_pred * 2.0 * (da / a)
-
-    return obstime_pred, obstime_std
-
-
-def main(source, output, irfs, benchmarks):
-    source_table = QTable.read(source, format="ascii.ecsv")
-    source_row = source_table[0]
-
-    irfs_dict, sens_dict = get_irfs_sens(irfs, benchmarks, source_row)
-
-    source_model = create_spectral_model(source_row)
-    source_position = SkyCoord(
-        source_row["RAJ2000"], source_row["DEJ2000"], unit="deg", frame="icrs"
+    analysis.plot_source_model_with_sensitivities(
+        out_path=outpath.parent / f"{source.name}_sensitivity.pdf",
     )
-    pointing = SkyCoord(source_position.ra + offset, source_position.dec)
-    on_region = CircleSkyRegion(center=source_position, radius=on_radius)
 
-    fake_table_dict = defaultdict()
-    fake_sigma_dict = defaultdict()
-    observations = get_observations(irfs_dict, pointing)
-
-    spec_dataset_on_off_50h = create_spectrum_dataset_onoff(
-        observations["50"], on_region, source_model
-    )
-    table_50h, sigma_50h = fake_data(spec_dataset_on_off_50h, source_model)
-    fake_table_dict["50h"] = table_50h
-    fake_sigma_dict["50h"] = sigma_50h
-
-    if sigma_50h.mean() > 5:
-        for obstime in [x for x in irfs_dict.keys() if x != "50"]:
-            spec_dataset_on_off = create_spectrum_dataset_onoff(
-                observations[f"{int(obstime)}"],
-                on_region,
-                source_model,
-            )
-
-            table, sigma = fake_data(spec_dataset_on_off, source_model)
-            fake_table_dict[f"{obstime}h"] = table
-            fake_sigma_dict[f"{obstime}h"] = sigma
-
-        obstime_5sigma, obstime_5sigma_std = predict_obstime(
-            fake_sigma_dict, 5.0, irfs_dict
-        )
-
-        plot_source_model(sens_dict, source_model, Path(output).parent)
-
-        source_table["obstime_5s"] = obstime_5sigma
-        source_table["obstime_5s_std"] = obstime_5sigma_std
-        for obstime in irfs_dict.keys():
-            source_table[f"sigma_{obstime}h_mean"] = fake_sigma_dict[
-                f"{obstime}h"
-            ].mean()
-            source_table[f"sigma_{obstime}h_std"] = fake_sigma_dict[f"{obstime}h"].std()
-
-    else:
-        source_table["obstime_5s"] = np.nan
-        source_table["obstime_5s_std"] = np.nan
-        source_table["sigma_50.0h_mean"] = sigma_50h.mean()
-        source_table["sigma_50.0h_std"] = sigma_50h.std()
-        for obstime in ["0.5", "5.0"]:
-            source_table[f"sigma_{obstime}h_mean"] = np.nan
-            source_table[f"sigma_{obstime}h_std"] = np.nan
-
-    # Write table to new output
-    source_table.write(Path(output), format="ascii.ecsv", overwrite=True)
+    analysis.write(outpath)
 
 
 if __name__ == "__main__":
@@ -451,6 +942,13 @@ if __name__ == "__main__":
         parser.add_argument("--output", required=True)
         parser.add_argument("--irfs", nargs="+", required=True)
         parser.add_argument("--benchmarks", nargs="+", required=True)
+        parser.add_argument("--sigma-target", type=float, default=5.0)
         args = parser.parse_args()
 
-        main(args.source, args.output, args.irfs, args.benchmarks)
+        main(
+            args.source,
+            args.output,
+            args.irfs,
+            args.benchmarks,
+            sigma_target=args.sigma_target,
+        )

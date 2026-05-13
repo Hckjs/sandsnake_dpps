@@ -62,9 +62,9 @@ class VisibilityConfig:
     site_name: str = "Roque de los Muchachos"
     astro_night: u.Quantity = -18 * u.deg
     # La Palma geomagnetic field values from the MC production site configuration.
-    prod_site_B_declination = -0.07534063 * u.rad
-    prod_site_B_inclination = 0.64818996 * u.rad
-    prod_site_B_total = 38.77302551 * u.uT
+    prod_site_B_declination: u.Quantity = -0.07534063 * u.rad
+    prod_site_B_inclination: u.Quantity = 0.64818996 * u.rad
+    prod_site_B_total: u.Quantity = 38.77302551 * u.uT
 
 
 @dataclass(slots=True)
