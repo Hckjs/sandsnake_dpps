@@ -4,6 +4,7 @@ envvars:
 
 
 checkpoint process_catalog:
+    priority: 100
     output:
         priors=PATHS["fermi:template:catalog_out_dirs"] / "redshift_priors.ecsv",
     input:
@@ -30,7 +31,6 @@ checkpoint process_catalog:
         select_env("plotting", "core")
     resources:
         mem_mb=1000,
-    threads: 6
     script:
         FERMI_SCRIPTS_DIR / "process_catalog.py"
 

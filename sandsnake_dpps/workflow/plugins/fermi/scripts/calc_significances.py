@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -512,6 +510,8 @@ class SourceAnalysis:
             obstime_results = self.estimate_obstime(sigma_results)
             self.append_results_to_output_table(obstime_results, spectral_model.name)
 
+        self.output_table["status"] = ["success"]
+
     @staticmethod
     def _format_obstime(obstime: float) -> str:
         return f"{float(obstime):g}"
@@ -883,6 +883,8 @@ def create_output_table(
         obstime_label = f"{obstime:g}"
         output_table[f"sigma_{obstime_label}h_mean"] = [np.nan]
         output_table[f"sigma_{obstime_label}h_std"] = [np.nan]
+
+    return output_table
 
 
 def main(

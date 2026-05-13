@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 import argparse
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import astropy.units as u
 import matplotlib.pyplot as plt
@@ -14,7 +12,6 @@ from astropy.coordinates import AltAz, EarthLocation, SkyCoord, get_sun
 from astropy.table import QTable, join
 from astropy.time import Time
 from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 try:
     from plugins.fermi.scripts.catalog_priors import (
@@ -78,7 +75,7 @@ class VisibilityGrid:
     b_vec: np.ndarray
 
     @classmethod
-    def create(cls, config: VisibilityConfig) -> VisibilityGrid:
+    def create(cls, config: VisibilityConfig) -> Self:
         location = EarthLocation.of_site(config.site_name)
         time_grid = Time(
             np.arange(
@@ -583,49 +580,6 @@ def create_catalog_symlinks(
                 symlink_force(dest_dir, link_dir)
 
 
-def process_one_source(
-    source,
-    *,
-    catalog: str,
-    catalog_colnames: list[str],
-    src_names_fgl_assoc_fhl: QTable,
-    outpath: Path,
-    grid: VisibilityGrid,
-    write_plots: bool,
-) -> str:
-    calculator = SourceVisibilityCalculator(grid, write_plots=write_plots)
-
-    source_name = clean_source_name(source["Source_Name"])
-    if not source_name:
-        raise ValueError("Encountered source without Source_Name")
-
-    source_table = QTable(rows=[source], names=catalog_colnames)
-    result = calculator.calculate(source)
-    source_table = append_visibility_columns(source_table, result)
-
-    source_dir = outpath / source_name
-    source_dir.mkdir(parents=True, exist_ok=True)
-
-    if write_plots:
-        write_histograms(source_dir, source_name, result)
-
-    source_table.write(
-        source_dir / f"{source_name}.ecsv",
-        format="ascii.ecsv",
-        overwrite=True,
-    )
-
-    create_catalog_symlinks(
-        catalog=catalog,
-        source_row=source,
-        source_name=source_name,
-        outpath=outpath,
-        src_names_fgl_assoc_fhl=src_names_fgl_assoc_fhl,
-    )
-
-    return source_name
-
-
 def process_sources(
     *,
     catalog: str,
@@ -634,47 +588,40 @@ def process_sources(
     outpath: Path,
     calculator: SourceVisibilityCalculator,
     write_plots: bool,
-    n_processes: int = 1,
 ) -> None:
-    if n_processes <= 1:
-        for source in tqdm(
-            catalog_table,
-            desc=f"Processing {catalog} sources",
-            unit="src",
-        ):
-            process_one_source(
-                source,
-                catalog=catalog,
-                catalog_colnames=catalog_table.colnames,
-                src_names_fgl_assoc_fhl=src_names_fgl_assoc_fhl,
-                outpath=outpath,
-                grid=calculator.grid,
-                write_plots=write_plots,
-            )
-        return
+    for source in tqdm(
+        catalog_table,
+        desc=f"Processing {catalog} sources",
+        unit="src",
+    ):
+        source_name = clean_source_name(source["Source_Name"])
+        if not source_name:
+            raise ValueError("Encountered source without Source_Name")
 
-    with ProcessPoolExecutor(max_workers=n_processes) as executor:
-        futures = [
-            executor.submit(
-                process_one_source,
-                source,
-                catalog=catalog,
-                catalog_colnames=catalog_table.colnames,
-                src_names_fgl_assoc_fhl=src_names_fgl_assoc_fhl,
-                outpath=outpath,
-                grid=calculator.grid,
-                write_plots=write_plots,
-            )
-            for source in catalog_table
-        ]
+        source_table = QTable(rows=[source], names=catalog_table.colnames)
+        result = calculator.calculate(source)
+        source_table = append_visibility_columns(source_table, result)
 
-        for future in tqdm(
-            as_completed(futures),
-            total=len(futures),
-            desc=f"Processing {catalog} sources",
-            unit="src",
-        ):
-            future.result()
+        source_dir = outpath / source_name
+        source_dir.mkdir(parents=True, exist_ok=True)
+
+        if write_plots:
+            write_histograms(source_dir, source_name, result)
+
+        source_table.write(
+            source_dir / f"{source_name}.ecsv",
+            format="ascii.ecsv",
+            overwrite=True,
+        )
+
+        create_catalog_symlinks(
+            catalog=catalog,
+            source_row=source,
+            source_name=source_name,
+            outpath=outpath,
+            src_names_fgl_assoc_fhl=src_names_fgl_assoc_fhl,
+        )
+    return
 
 
 def main(
@@ -692,7 +639,6 @@ def main(
     lower_quantile: float = 0.16,
     upper_quantile: float = 0.84,
     min_sources_per_group: int = 50,
-    n_processes: int = 1,
 ) -> None:
     """
     Process a Fermi-LAT catalog and compute per-source catalog products.
@@ -739,7 +685,6 @@ def main(
         outpath=outpath,
         calculator=calculator,
         write_plots=write_plots,
-        n_processes=n_processes,
     )
 
 
@@ -763,7 +708,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--redshift-upper-quantile", type=float, default=0.84)
     parser.add_argument("--redshift-min-sources-per-group", type=int, default=10)
 
-    parser.add_argument("--n-processes", type=int, default=1)
     return parser.parse_args()
 
 
@@ -785,7 +729,6 @@ if __name__ == "__main__":
             lower_quantile=smk.params.redshift_lower_quantile,
             upper_quantile=smk.params.redshift_upper_quantile,
             min_sources_per_group=smk.params.redshift_min_sources_per_group,
-            n_processes=smk.threads,
         )
 
     else:
@@ -804,5 +747,4 @@ if __name__ == "__main__":
             lower_quantile=args.redshift_lower_quantile,
             upper_quantile=args.redshift_upper_quantile,
             min_sources_per_group=args.redshift_min_sources_per_group,
-            n_processes=args.n_processes,
         )
