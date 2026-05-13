@@ -30,9 +30,9 @@ DefaultRecoEnergyBins:
   reco_energy_n_bins_per_decade: 5
 
 ThetaPercentileCutCalculator:
-  theta_min_angle: -1 deg
-  theta_max_angle: 0.35 deg
-  theta_fill_value: 0.35 deg
+  theta_min_angle: null
+  theta_max_angle: 0.5 deg
+  theta_fill_value: 0.5 deg
   smoothing:
   target_percentile: 68
   min_counts: 10
@@ -43,9 +43,16 @@ GhPercentileCutCalculator:
   smoothing:
 
 PointSourceSensitivityOptimizer:
-  min_background_fov_offset: 0 deg
-  max_background_fov_offset: 5 deg
-  initial_gh_cut_efficency: 0.4
+  min_background_fov_offset: 0.0 deg
+  max_background_fov_offset: 5.0 deg
   max_gh_cut_efficiency: 0.8
   gh_cut_efficiency_step: 0.05
   alpha: 0.2
+  theta_min_angle: null
+  theta_max_angle: 0.5 deg
+  max_theta_cut_efficiency: 0.8
+  theta_cut_efficiency_step: 0.1
+  multiplicity_cuts: [2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+PointSourceSensitivityGhOptimizer:
+  initial_gh_cut_efficency: 0.4

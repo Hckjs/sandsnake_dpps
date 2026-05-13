@@ -46,8 +46,6 @@ rule calc_significances:
         irfs=TARGETS_IRFS("core", resolve=True),
         benchmarks=TARGETS_BENCHMARKS("core", resolve=True),
         priors=PATHS["fermi:template:catalog_out_dirs"] + "/redshift_priors.ecsv",
-    params:
-        irfs_template=PATHS["core:template:irfs"],
     conda:
         select_env("plotting", "core")
     resources:

@@ -36,6 +36,8 @@ REDSHIFT_PRIOR_SCENARIOS = (
     ("z_high", "z_q_high"),
 )
 
+site_params = VisibilityConfig()
+
 
 @dataclass(frozen=True, slots=True)
 class RedshiftScenario:
@@ -107,8 +109,8 @@ class IRFCollection:
         benchmark_paths: Iterable[str | Path] | None = None,
         *,
         site_name: str = "Roque de los Muchachos",
-        b_declination: u.Quantity = VisibilityConfig.prod_site_B_declination,
-        b_inclination: u.Quantity = VisibilityConfig.prod_site_B_inclination,
+        b_declination: u.Quantity = site_params.prod_site_B_declination,
+        b_inclination: u.Quantity = site_params.prod_site_B_inclination,
     ):
         self.site_name = site_name
         self.location = EarthLocation.of_site(site_name)
@@ -476,7 +478,7 @@ class SourceAnalysis:
         irf_node: IRFNode,
         output_table: QTable,
         *,
-        offset: u.Quantity = 0.7 * u.deg,  # Needs to match IRFs
+        offset: u.Quantity | None = None,  # Needs to match IRFs
         n_off_regions: int = 5,
         n_fake_datasets: int = 100,
     ):
@@ -487,10 +489,14 @@ class SourceAnalysis:
         self.n_off_regions = n_off_regions
         self.n_fake_datasets = n_fake_datasets
 
-        self.pointing = self.source.position.directional_offset_by(
-            position_angle=90 * u.deg,
-            separation=self.offset,
-        )
+        if offset is not None:
+            self.pointing = self.source.position.directional_offset_by(
+                position_angle=90 * u.deg,
+                separation=self.offset,
+            )
+        else:
+            self.pointing = self.source.position
+
         self.on_region = PointSkyRegion(self.source.position)
 
     def run(self) -> None:
@@ -517,27 +523,23 @@ class SourceAnalysis:
         return f"{float(obstime):g}"
 
     def _create_observations(self) -> Observations:
-        obstimes = self.irf_node.obstimes
-
-        observations = []
-        for obs_id, obstime in enumerate(obstimes, start=1):
-            obs = Observation.create(
+        observations = {}
+        for obs_id, obstime in enumerate(self.irf_node.obstimes, start=1):
+            observations[obstime] = Observation.create(
                 obs_id=obs_id,
                 pointing=self.pointing,
                 livetime=float(obstime) * u.h,
                 irfs=self.irf_node.load_irfs(obstime),
                 location=self.irf_node.location,
             )
-            obs.meta["obstime"] = str(obstime)
-            observations.append(obs)
 
-        observations = Observations(observations)
         return observations
 
     def create_spectrum_dataset_onoff(
         self,
         observation: Observation,
         spectral_model: SkyModel,
+        obstime: float,
     ) -> SpectrumDatasetOnOff:
         energy_axis_reco = observation.bkg.axes["energy"]
         energy_axis_true = MapAxis.from_energy_bounds(
@@ -551,7 +553,7 @@ class SourceAnalysis:
         dataset_empty = SpectrumDataset.create(
             geom=geom,
             energy_axis_true=energy_axis_true,
-            name=f"{self.source.name}_{spectral_model.name}_{float(observation.meta['obstime']):g}h",
+            name=f"{self.source.name}_{spectral_model.name}_{obstime:g}h",
         )
 
         maker = SpectrumDatasetMaker(
@@ -573,18 +575,18 @@ class SourceAnalysis:
 
     def create_datasets_onoff(
         self,
-        observations: Observations,
+        observations: dict[float, Observations],
         spectral_model: SkyModel,
     ) -> dict[float, SpectrumDatasetOnOff]:
         datasets_by_obstime: dict[float, SpectrumDatasetOnOff] = {}
-        for observation in observations:
-            obstime = float(observation.meta["obstime"])
+        for obstime, observation in observations.items():
             datasets_by_obstime[obstime] = self.create_spectrum_dataset_onoff(
                 observation,
                 spectral_model,
+                obstime,
             )
 
-        return dict(sorted(datasets_by_obstime.items()))
+        return datasets_by_obstime
 
     def run_fake_studies(
         self,
