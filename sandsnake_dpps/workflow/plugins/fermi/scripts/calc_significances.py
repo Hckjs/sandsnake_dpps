@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 import re
+import logging
 
 import astropy.units as u
 import matplotlib.pyplot as plt
@@ -37,6 +38,7 @@ REDSHIFT_PRIOR_SCENARIOS = (
 )
 
 site_params = VisibilityConfig()
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -463,6 +465,12 @@ class Source:
         return spec_model
 
 
+@dataclass(slots=True)
+class OnOffSimulationInput:
+    dataset_onoff: SpectrumDatasetOnOff
+    npred_background: Any
+
+
 class SourceAnalysis:
     """
     Concrete analysis of one source for one IRF node.
@@ -540,7 +548,7 @@ class SourceAnalysis:
         observation: Observation,
         spectral_model: SkyModel,
         obstime: float,
-    ) -> SpectrumDatasetOnOff:
+    ) -> OnOffSimulationInput:
         energy_axis_reco = observation.bkg.axes["energy"]
         energy_axis_true = MapAxis.from_energy_bounds(
             0.3 * energy_axis_reco.edges[0],
@@ -567,18 +575,25 @@ class SourceAnalysis:
         dataset = safe_mask_maker.run(dataset, observation)
         dataset.models = spectral_model.copy()
 
-        return SpectrumDatasetOnOff.from_spectrum_dataset(
+        npred_background = dataset.npred_background()
+
+        dataset_onoff = SpectrumDatasetOnOff.from_spectrum_dataset(
             dataset=dataset,
             acceptance=1,
             acceptance_off=self.n_off_regions,
+        )
+
+        return OnOffSimulationInput(
+            dataset_onoff=dataset_onoff,
+            npred_background=npred_background,
         )
 
     def create_datasets_onoff(
         self,
         observations: dict[float, Observations],
         spectral_model: SkyModel,
-    ) -> dict[float, SpectrumDatasetOnOff]:
-        datasets_by_obstime: dict[float, SpectrumDatasetOnOff] = {}
+    ) -> dict[float, OnOffSimulationInput]:
+        datasets_by_obstime: dict[float, OnOffSimulationInput] = {}
         for obstime, observation in observations.items():
             datasets_by_obstime[obstime] = self.create_spectrum_dataset_onoff(
                 observation,
@@ -590,7 +605,7 @@ class SourceAnalysis:
 
     def run_fake_studies(
         self,
-        datasets_onoff: dict[float, SpectrumDatasetOnOff],
+        datasets_onoff: dict[float, OnOffSimulationInput],
         spectral_model: SkyModel,
         *,
         n_fake_datasets: int | None = None,
@@ -616,7 +631,7 @@ class SourceAnalysis:
 
     def fake_data(
         self,
-        dataset_on_off: SpectrumDatasetOnOff,
+        simulation_input: OnOffSimulationInput,
         spectral_model: SkyModel,
         *,
         n_fake_datasets: int | None = None,
@@ -625,10 +640,24 @@ class SourceAnalysis:
 
         datasets = Datasets()
         for idx in range(n_fake):
-            ds = dataset_on_off.copy(name=f"{dataset_on_off.name}_{idx}")
-            # Dataset.copy() does not reliably copy models; copy explicitly.
+            ds = simulation_input.dataset_onoff.copy(
+                name=f"{simulation_input.dataset_onoff.name}_{idx}"
+            )
             ds.models = spectral_model.copy()
-            ds.fake(random_state=idx, npred_background=ds.npred_background())
+
+            npred_background = simulation_input.npred_background.copy()
+            data = npred_background.data
+
+            invalid = ~np.isfinite(data) | (data < 0)
+            if np.any(invalid):
+                log.warning(
+                    "%s: replacing %d invalid npred_background bins with 0",
+                    ds.name,
+                    int(np.count_nonzero(invalid)),
+                )
+                data[invalid] = 0.0
+
+            ds.fake(random_state=idx, npred_background=npred_background)
             ds.meta_table["OBS_ID"] = [idx]
             datasets.append(ds)
 
