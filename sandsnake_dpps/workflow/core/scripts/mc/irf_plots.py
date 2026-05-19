@@ -10,7 +10,7 @@ from gammapy.irf import EnergyDispersion2D, EffectiveAreaTable2D, Background2D
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 
-offset = 0.7 * u.deg
+offset = 0.0 * u.deg  # TODO: Should not be hardcoded, just on-axis for now
 e_lim = [5.0e-3, 5.0e2]
 
 
@@ -242,7 +242,6 @@ def plot_sensitivity(benchmarks_path):
         sens["ENERGY_FLUX_SENSITIVITY"].flatten(),
         xerr=0.5 * (sens["ENERG_HI"] - sens["ENERG_LO"]),
         ls="",
-        label=f"Offset: {offset:.1f}",
     )
 
     add_sensitivity_comparisons(ax)

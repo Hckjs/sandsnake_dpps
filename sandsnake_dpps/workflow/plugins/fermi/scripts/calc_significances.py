@@ -543,6 +543,79 @@ class SourceAnalysis:
 
         return observations
 
+    def _background_counts_from_rad_max(
+        self,
+        observation: Observation,
+        energy_axis_reco: MapAxis,
+    ) -> np.ndarray:
+        if observation.rad_max is None:
+            raise ValueError(
+                "Point-like RAD_MAX background requested, but observation.rad_max "
+                "is missing."
+            )
+
+        if observation.bkg is None:
+            raise ValueError(
+                "Point-like RAD_MAX background requested, but observation.bkg "
+                "is missing."
+            )
+
+        source_offset = 0.0 * u.deg if self.offset is None else self.offset
+        energy = energy_axis_reco.center
+        energy_width = np.diff(energy_axis_reco.edges)
+
+        rad_max = observation.rad_max.evaluate(
+            energy=energy,
+            offset=source_offset,
+        )
+        theta = rad_max.to(u.rad)
+        solid_angle = 2.0 * np.pi * (1.0 - np.cos(theta.value)) * u.sr
+
+        bkg_rate = observation.bkg.evaluate(
+            energy=energy,
+            offset=source_offset,
+        )
+        livetime = observation.observation_live_time_duration
+
+        background_counts = (bkg_rate * energy_width * livetime * solid_angle).to_value(
+            ""
+        )
+        background_counts = np.asarray(background_counts, dtype=float).reshape(-1)
+        background_counts[~np.isfinite(background_counts)] = 0.0
+        background_counts[background_counts < 0.0] = 0.0
+
+        if background_counts.size != energy_axis_reco.nbin:
+            raise ValueError(
+                "RAD_MAX background shape mismatch: "
+                f"got {background_counts.size} bins, expected {energy_axis_reco.nbin}"
+            )
+
+        if not np.any(background_counts > 0.0):
+            raise ValueError(
+                "RAD_MAX background is zero in all reconstructed-energy bins. "
+                f"source_offset={source_offset:.3f}"
+            )
+
+        return background_counts
+
+    def _set_rad_max_background(
+        self,
+        dataset: SpectrumDataset,
+        observation: Observation,
+        energy_axis_reco: MapAxis,
+    ) -> None:
+        background_counts = self._background_counts_from_rad_max(
+            observation,
+            energy_axis_reco,
+        )
+
+        background_data = np.zeros(dataset.counts.data.shape, dtype=float)
+        background_data[...] = background_counts.reshape(
+            (energy_axis_reco.nbin,) + (1,) * (background_data.ndim - 1)
+        )
+
+        dataset.background = dataset.counts.copy(data=background_data)
+
     def create_spectrum_dataset_onoff(
         self,
         observation: Observation,
@@ -564,14 +637,14 @@ class SourceAnalysis:
             name=f"{self.source.name}_{spectral_model.name}_{obstime:g}h",
         )
 
-        maker = SpectrumDatasetMaker(
+        dataset_maker = SpectrumDatasetMaker(
             containment_correction=False,
-            use_region_center=True,
-            selection=["exposure", "edisp", "background"],
+            selection=["exposure", "edisp"],
         )
-        safe_mask_maker = SafeMaskMaker(methods=["bkg-peak"])
+        safe_mask_maker = SafeMaskMaker(methods=["aeff-default"])
 
-        dataset = maker.run(dataset_empty, observation)
+        dataset = dataset_maker.run(dataset_empty, observation)
+        self._set_rad_max_background(dataset, observation, energy_axis_reco)
         dataset = safe_mask_maker.run(dataset, observation)
         dataset.models = spectral_model.copy()
 
@@ -618,13 +691,21 @@ class SourceAnalysis:
                 n_fake_datasets=n_fake_datasets,
             )
 
+            valid_sigma = sigma[np.isfinite(sigma)]
+            if len(valid_sigma) == 0:
+                sigma_mean = np.nan
+                sigma_std = np.nan
+            else:
+                sigma_mean = float(np.mean(valid_sigma))
+                sigma_std = float(np.std(valid_sigma))
+
             results[obstime] = {
                 "dataset_onoff": dataset_on_off,
                 "fake_datasets": fake_datasets,
                 "info_table": info_table,
                 "sigma": sigma,
-                "sigma_mean": float(np.mean(sigma)),
-                "sigma_std": float(np.std(sigma)),
+                "sigma_mean": sigma_mean,
+                "sigma_std": sigma_std,
             }
 
         return dict(sorted(results.items()))
@@ -669,8 +750,6 @@ class SourceAnalysis:
     def estimate_obstime(
         self,
         results: dict[float, dict[str, Any]],
-        *,
-        max_extrapolation_factor: float = 5.0,
     ) -> dict[str, Any]:
         sigma_by_obstime = {
             obstime: payload["sigma"] for obstime, payload in results.items()
@@ -680,12 +759,6 @@ class SourceAnalysis:
             sigma_by_obstime=sigma_by_obstime,
             sigma_target=self.output_table[0]["sigma_target"],
         )
-
-        max_simulated_obstime = max(sigma_by_obstime)
-        if np.isfinite(obstime_5s):
-            if obstime_5s > max_extrapolation_factor * max_simulated_obstime:
-                obstime_5s = np.nan
-                obstime_5s_std = np.nan
 
         return {
             "obstime_5s": float(obstime_5s),
