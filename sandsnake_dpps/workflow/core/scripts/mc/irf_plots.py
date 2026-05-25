@@ -268,6 +268,7 @@ def add_sensitivity_comparisons(ax, energy_limits=e_lim):
         percentage=100,
         ax=ax,
         label="100% Crab",
+        alpha=0.5,
     )
     plot_Crab_SED(
         energy_limits[0] * u.TeV,
@@ -276,6 +277,7 @@ def add_sensitivity_comparisons(ax, energy_limits=e_lim):
         ax=ax,
         linestyle="--",
         label="10% Crab",
+        alpha=0.5,
     )
     plot_Crab_SED(
         energy_limits[0] * u.TeV,
@@ -284,6 +286,7 @@ def add_sensitivity_comparisons(ax, energy_limits=e_lim):
         ax=ax,
         linestyle=":",
         label="1% Crab",
+        alpha=0.5,
     )
 
     resources_path = REPO_ROOT / "resources"
@@ -295,7 +298,7 @@ def add_sensitivity_comparisons(ax, energy_limits=e_lim):
         ctao_req_e,
         ctao_req_sens,
         color="red",
-        label="CTAO North Requirement (50h)",
+        label="CTAO-N Req. (50h)",
         alpha=0.5,
     )
 

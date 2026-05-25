@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from astropy.table import QTable
+from enum import StrEnum
 
 EXTRAGALACTIC_CLASSES = {
     "agn",
@@ -42,6 +43,21 @@ UNCERTAIN_CLASSES = {
 }
 
 
+class SourceOrigin(StrEnum):
+    GALACTIC = "gal"
+    EXTRAGALACTIC = "egal"
+    UNKNOWN = "unk"
+
+
+class RedshiftSource(StrEnum):
+    GALACTIC_ZERO = "galactic_zero"
+    UNKNOWN_ORIGIN = "unknown_origin"
+    MEASURED = "measured"
+    PRIOR_BLL = "prior_bll"
+    PRIOR_FSRQ = "prior_fsrq"
+    NO_PRIOR = "no_prior"
+
+
 @dataclass(slots=True)
 class RedshiftPriorConfig:
     class_column: str = "CLASS1"
@@ -80,15 +96,15 @@ def get_z_class(row, config: RedshiftPriorConfig) -> str:
     source_class = normalize_label(row[config.class_column])
 
     if source_class in GALACTIC_CLASSES:
-        return "gal"
+        return SourceOrigin.GALACTIC
 
     if source_class in EXTRAGALACTIC_CLASSES:
-        return "egal"
+        return SourceOrigin.EXTRAGALACTIC
 
     if source_class in UNCERTAIN_CLASSES:
-        return "unk"
+        return SourceOrigin.UNKNOWN
 
-    return "unk"
+    return SourceOrigin.UNKNOWN
 
 
 def get_prior_group(row, config: RedshiftPriorConfig) -> str:
@@ -113,17 +129,17 @@ def get_prior_group(row, config: RedshiftPriorConfig) -> str:
         sed_class = normalize_label(row[config.sed_column])
 
     if source_class == "bll":
-        return "bll"
+        return RedshiftSource.PRIOR_BLL
 
     if source_class == "fsrq":
-        return "fsrq"
+        return RedshiftSource.PRIOR_FSRQ
 
     if source_class == "bcu":
         if sed_class in {"", "hsp", "isp"}:
-            return "bll"
+            return RedshiftSource.PRIOR_BLL
 
         if sed_class == "lsp":
-            return "fsrq"
+            return RedshiftSource.PRIOR_FSRQ
 
         return ""
 
@@ -265,24 +281,24 @@ def append_redshift_prior_columns(
         z_classes.append(z_class)
         prior_groups.append(prior_group)
 
-        if z_class == "gal":
+        if z_class == SourceOrigin.GALACTIC:
             has_measured_z.append(False)
             z_measured.append(np.nan)
             z_q_low.append(np.nan)
             z_q_med.append(np.nan)
             z_q_high.append(np.nan)
             z_prior_n.append(0)
-            z_source.append("galactic_zero")
+            z_source.append(RedshiftSource.GALACTIC_ZERO)
             continue
 
-        if z_class == "unk":
+        if z_class == SourceOrigin.UNKNOWN:
             has_measured_z.append(False)
             z_measured.append(np.nan)
             z_q_low.append(np.nan)
             z_q_med.append(np.nan)
             z_q_high.append(np.nan)
             z_prior_n.append(0)
-            z_source.append("unknown_origin")
+            z_source.append(RedshiftSource.UNKNOWN_ORIGIN)
             continue
 
         if measured:
@@ -292,7 +308,7 @@ def append_redshift_prior_columns(
             z_q_med.append(z_catalog)
             z_q_high.append(z_catalog)
             z_prior_n.append(1)
-            z_source.append("measured")
+            z_source.append(RedshiftSource.MEASURED)
             continue
 
         prior = lookup_prior(prior_table, prior_group)
@@ -304,7 +320,7 @@ def append_redshift_prior_columns(
             z_q_med.append(float(prior["z_q_med"]))
             z_q_high.append(float(prior["z_q_high"]))
             z_prior_n.append(int(prior["n_z"]))
-            z_source.append(f"prior_{prior_group}")
+            z_source.append(prior_group)
             continue
 
         has_measured_z.append(False)
@@ -313,7 +329,7 @@ def append_redshift_prior_columns(
         z_q_med.append(np.nan)
         z_q_high.append(np.nan)
         z_prior_n.append(0)
-        z_source.append("no_prior")
+        z_source.append(RedshiftSource.NO_PRIOR)
 
     catalog_table["z_class"] = z_classes
     catalog_table["z_prior_group"] = prior_groups

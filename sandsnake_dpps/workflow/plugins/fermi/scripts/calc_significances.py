@@ -29,16 +29,34 @@ from scipy.optimize import curve_fit
 
 from core.scripts.mc.irf_plots import add_sensitivity_comparisons
 from plugins.fermi.scripts.process_catalog import VisibilityConfig, get_B_direction
+from plugins.fermi.scripts.catalog_priors import RedshiftSource, SourceOrigin
+from enum import StrEnum
 
-
-REDSHIFT_PRIOR_SCENARIOS = (
-    ("z_low", "z_q_low"),
-    ("z_med", "z_q_med"),
-    ("z_high", "z_q_high"),
-)
 
 site_params = VisibilityConfig()
 log = logging.getLogger(__name__)
+
+
+class AnalysisStatus(StrEnum):
+    NOT_RUN = "not_run"
+    SUCCESS = "success"
+    NOT_OBSERVABLE = "not_observable"
+    UNKNOWN_ORIGIN = "unknown_origin"
+    NO_USABLE_REDSHIFT = "no_usable_redshift"
+
+
+class RedshiftScenarioLabel(StrEnum):
+    LOW = "z_low"
+    MED = "z_med"
+    HIGH = "z_high"
+    MEASURED = "z_measured"
+
+
+REDSHIFT_PRIOR_SCENARIOS = (
+    (RedshiftScenarioLabel.LOW, "z_q_low"),
+    (RedshiftScenarioLabel.MED, "z_q_med"),
+    (RedshiftScenarioLabel.HIGH, "z_q_high"),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -349,7 +367,9 @@ class Source:
 
     @property
     def has_prior_redshift_scenarios(self) -> bool:
-        return self.z_source.startswith("prior_")
+        if self.z_source in [RedshiftSource.PRIOR_BLL, RedshiftSource.PRIOR_FSRQ]:
+            return True
+        return False
 
     def _resolve_redshift_scenarios(self) -> list[RedshiftScenario] | None:
         if self.has_prior_redshift_scenarios:
@@ -362,12 +382,12 @@ class Source:
                 for label, column in REDSHIFT_PRIOR_SCENARIOS
             ]
 
-        if self.z_source == "measured":
+        if self.z_source == RedshiftSource.MEASURED:
             return [
                 RedshiftScenario(
-                    label="z_measured",
-                    redshift=self.row["z_measured"],
-                    source_column="z_measured",
+                    label=RedshiftScenarioLabel.MEASURED,
+                    redshift=self.row[RedshiftScenarioLabel.MEASURED],
+                    source_column=RedshiftScenarioLabel.MEASURED,
                 )
             ]
 
@@ -405,7 +425,7 @@ class Source:
                 )
 
             if spec_type == "LogParabola" or (
-                spec_type == "PLSuperExpCutoff" and self.origin == "egal"
+                spec_type == "PLSuperExpCutoff" and self.origin == SourceOrigin.GALACTIC
             ):
                 return LogParabolaSpectralModel(
                     amplitude=self.row["LP_Flux_Density"] / u.ph,
@@ -442,8 +462,8 @@ class Source:
 
     def _create_spectral_model(self) -> list[SkyModel] | None:
         base_model = self._create_base_spectral_model()
-        if self.origin == "gal":
-            return [SkyModel(spectral_model=base_model, name="gal")]
+        if self.origin == SourceOrigin.GALACTIC:
+            return [SkyModel(spectral_model=base_model, name=SourceOrigin.GALACTIC)]
 
         if self.redshift_scenarios is None:
             return None
@@ -497,7 +517,7 @@ class SourceAnalysis:
         self.n_off_regions = n_off_regions
         self.n_fake_datasets = n_fake_datasets
 
-        if offset is not None:
+        if offset is not None and offset.value > 0.0:
             self.pointing = self.source.position.directional_offset_by(
                 position_angle=90 * u.deg,
                 separation=self.offset,
@@ -524,7 +544,7 @@ class SourceAnalysis:
             obstime_results = self.estimate_obstime(sigma_results)
             self.append_results_to_output_table(obstime_results, spectral_model.name)
 
-        self.output_table["status"] = ["success"]
+        self.output_table["status"] = [AnalysisStatus.SUCCESS]
 
     @staticmethod
     def _format_obstime(obstime: float) -> str:
@@ -638,8 +658,7 @@ class SourceAnalysis:
         )
 
         dataset_maker = SpectrumDatasetMaker(
-            containment_correction=False,
-            selection=["exposure", "edisp"],
+            containment_correction=False, selection=["exposure", "edisp"]
         )
         safe_mask_maker = SafeMaskMaker(methods=["aeff-default"])
 
@@ -831,17 +850,237 @@ class SourceAnalysis:
     def _sed_flux(model: SkyModel, energy: u.Quantity) -> u.Quantity:
         return (energy**2 * model.spectral_model(energy)).to("erg cm-2 s-1")
 
+    @staticmethod
+    def _row_quantity(row, column: str, default_unit: str | u.Unit) -> u.Quantity:
+        value = row[column]
+        quantity = u.Quantity(value, copy=False)
+
+        values = np.ma.filled(quantity.value, np.nan)
+        unit = quantity.unit
+        default_unit = u.Unit(default_unit)
+
+        if unit == u.dimensionless_unscaled:
+            unit = default_unit
+
+        return u.Quantity(values, unit).to(default_unit)
+
+    def _fermi_flux_point_energy_edges(self, n_bins: int) -> u.Quantity | None:
+        """
+        Return catalog SED-bin edges.
+
+        4FGL-DR4:
+            50 MeV - 1 TeV, 8 bins.
+
+        3FHL:
+            10 GeV - 2 TeV, 5 bins.
+        """
+        source_name = self.source.name
+
+        if "FHL" in source_name:
+            edges = [10, 20, 50, 150, 500, 2000] * u.GeV
+
+        elif "FGL" in source_name:
+            edges = [
+                50,
+                100,
+                300,
+                1_000,
+                3_000,
+                10_000,
+                30_000,
+                100_000,
+                1_000_000,
+            ] * u.MeV
+
+        else:
+            log.warning(
+                "%s: cannot infer Fermi flux-point energy bins from source name",
+                source_name,
+            )
+            return None
+
+        if len(edges) != n_bins + 1:
+            log.warning(
+                "%s: expected %d flux-point edges for %d bins, got %d edges",
+                source_name,
+                n_bins + 1,
+                n_bins,
+                len(edges),
+            )
+            return None
+
+        return edges.to(u.TeV)
+
+    def _fermi_flux_points_from_row(self) -> dict[str, Any] | None:
+        """
+        Extract Fermi SED points from the catalog row.
+
+        Returns e2dnde-like points in erg cm-2 s-1, including asymmetric
+        uncertainties and upper-limit values.
+        """
+        row = self.source.row
+
+        required = {"Flux_Band", "Unc_Flux_Band", "Sqrt_TS_Band"}
+        if not required.issubset(row.colnames):
+            return None
+
+        if "nuFnu_Band" in row.colnames:
+            nufnu_column = "nuFnu_Band"
+        elif "nuFnu" in row.colnames:
+            nufnu_column = "nuFnu"
+        else:
+            return None
+
+        flux = self._row_quantity(row, "Flux_Band", "ph cm-2 s-1")
+        flux_err = self._row_quantity(row, "Unc_Flux_Band", "ph cm-2 s-1")
+        e2dnde = self._row_quantity(row, nufnu_column, "erg cm-2 s-1")
+        sqrt_ts = np.asarray(np.ma.filled(row["Sqrt_TS_Band"], np.nan), dtype=float)
+
+        n_bins = len(e2dnde)
+        edges = self._fermi_flux_point_energy_edges(n_bins)
+        if edges is None:
+            return None
+
+        e_min = edges[:-1]
+        e_max = edges[1:]
+        e_ref = np.sqrt(e_min * e_max)
+        xerr = u.Quantity(
+            [
+                (e_ref - e_min).to_value(u.TeV),
+                (e_max - e_ref).to_value(u.TeV),
+            ],
+            u.TeV,
+        )
+
+        flux_value = flux.to_value("ph cm-2 s-1")
+        flux_err_value = flux_err.to_value("ph cm-2 s-1")
+        e2dnde_value = e2dnde.to_value("erg cm-2 s-1")
+
+        with np.errstate(divide="ignore", invalid="ignore"):
+            e2dnde_errn_value = np.abs(e2dnde_value * flux_err_value[:, 0] / flux_value)
+            e2dnde_errp_value = e2dnde_value * flux_err_value[:, 1] / flux_value
+
+        e2dnde_errn = e2dnde_errn_value * u.Unit("erg cm-2 s-1")
+        e2dnde_errp = e2dnde_errp_value * u.Unit("erg cm-2 s-1")
+
+        # Fermi/Gammapy convention:
+        # lower error NaN -> upper limit.
+        # Sqrt_TS_Band < 1 is also treated as an upper limit.
+        is_ul = ~np.isfinite(e2dnde_errn_value) | (sqrt_ts < 1.0)
+
+        e2dnde_ul = e2dnde + 2.0 * e2dnde_errp
+        invalid_ul = ~np.isfinite(e2dnde_ul.to_value("erg cm-2 s-1"))
+        if np.any(invalid_ul):
+            e2dnde_ul[invalid_ul] = e2dnde[invalid_ul]
+
+        catalog_label = "3FHL" if "FHL" in self.source.name else "4FGL"
+
+        return {
+            "catalog_label": catalog_label,
+            "e_ref": e_ref,
+            "xerr": xerr,
+            "e2dnde": e2dnde,
+            "e2dnde_errn": e2dnde_errn,
+            "e2dnde_errp": e2dnde_errp,
+            "e2dnde_ul": e2dnde_ul,
+            "sqrt_ts": sqrt_ts,
+            "is_ul": is_ul,
+        }
+
+    def _plot_fermi_flux_points(self, ax) -> None:
+        flux_points = self._fermi_flux_points_from_row()
+        if flux_points is None:
+            log.debug("%s: no Fermi flux points found in source row", self.source.name)
+            return
+
+        e_ref = flux_points["e_ref"]
+        xerr = flux_points["xerr"]
+        y = flux_points["e2dnde"]
+        yerrn = flux_points["e2dnde_errn"]
+        yerrp = flux_points["e2dnde_errp"]
+        y_ul = flux_points["e2dnde_ul"]
+        is_ul = flux_points["is_ul"]
+        catalog_label = flux_points["catalog_label"]
+
+        y_value = y.to_value("erg cm-2 s-1")
+        yerrn_value = yerrn.to_value("erg cm-2 s-1")
+        yerrp_value = yerrp.to_value("erg cm-2 s-1")
+        y_ul_value = y_ul.to_value("erg cm-2 s-1")
+
+        is_point = (
+            ~is_ul
+            & np.isfinite(y_value)
+            & np.isfinite(yerrn_value)
+            & np.isfinite(yerrp_value)
+            & (y_value > 0.0)
+        )
+        is_upper_limit = is_ul & np.isfinite(y_ul_value) & (y_ul_value > 0.0)
+
+        if np.any(is_point):
+            ax.errorbar(
+                e_ref[is_point].to_value(u.TeV),
+                y[is_point].to_value("erg cm-2 s-1"),
+                xerr=[
+                    xerr[0][is_point].to_value(u.TeV),
+                    xerr[1][is_point].to_value(u.TeV),
+                ],
+                yerr=[
+                    yerrn[is_point].to_value("erg cm-2 s-1"),
+                    yerrp[is_point].to_value("erg cm-2 s-1"),
+                ],
+                fmt="o",
+                ls="",
+                markersize=4,
+                capsize=2,
+                label=f"{catalog_label} flux points",
+                zorder=5,
+            )
+
+        if np.any(is_upper_limit):
+            # Matplotlib needs a finite yerr to draw the upper-limit arrow.
+            # The point itself is placed at the upper-limit value.
+            ul_yerr = 0.35 * y_ul[is_upper_limit].to_value("erg cm-2 s-1")
+
+            ax.errorbar(
+                e_ref[is_upper_limit].to_value(u.TeV),
+                y_ul[is_upper_limit].to_value("erg cm-2 s-1"),
+                xerr=[
+                    xerr[0][is_upper_limit].to_value(u.TeV),
+                    xerr[1][is_upper_limit].to_value(u.TeV),
+                ],
+                yerr=ul_yerr,
+                uplims=True,
+                fmt="v",
+                ls="",
+                markersize=4,
+                capsize=2,
+                label=f"{catalog_label} upper limits",
+                zorder=5,
+            )
+
     def plot_source_model_with_sensitivities(
         self,
         *,
         out_path: str | Path | None = None,
-        energy_bounds: u.Quantity = [0.01, 100.0] * u.TeV,
+        energy_bounds: u.Quantity | None = None,
     ):
         if self.source.spectral_models is None:
             raise ValueError("Source has no spectral model(s) to plot")
 
+        if "FGL" in self.source.name:
+            e_lim = [5.0e-5, 1.0e3]
+            if energy_bounds is None:
+                energy_bounds = [5.0e-5, 100.0] * u.TeV
+        elif "FHL" in self.source.name:
+            e_lim = [5.0e-3, 1.0e3]
+            if energy_bounds is None:
+                energy_bounds = [5.0e-3, 100.0] * u.TeV
+        else:
+            e_lim = [5.0e-3, 1.0e3]
+            if energy_bounds is None:
+                energy_bounds = [5.0e-3, 100.0] * u.TeV
+
         fig, ax = plt.subplots()
-        e_lim = [5.0e-3, 5.0e2]
 
         for obstime in self.irf_node.obstimes:
             sens = self.irf_node.load_benchmark(obstime)
@@ -856,6 +1095,8 @@ class SourceAnalysis:
                 label=f"CTAO-N - {obstime:g}h",
             )
 
+        self._plot_fermi_flux_points(ax)
+
         if self.source.has_prior_redshift_scenarios:
             energy = (
                 np.geomspace(
@@ -865,9 +1106,13 @@ class SourceAnalysis:
                 )
                 * u.TeV
             )
-            y_low = self._sed_flux(self.source.spectral_model_by_label["z_low"], energy)
+            y_low = self._sed_flux(
+                self.source.spectral_model_by_label[RedshiftScenarioLabel.LOW],
+                energy,
+            )
             y_high = self._sed_flux(
-                self.source.spectral_model_by_label["z_high"], energy
+                self.source.spectral_model_by_label[RedshiftScenarioLabel.HIGH],
+                energy,
             )
 
             ax.fill_between(
@@ -880,9 +1125,9 @@ class SourceAnalysis:
             )
 
             for label, linestyle in [
-                ("z_low", ":"),
-                ("z_med", "-"),
-                ("z_high", "--"),
+                (RedshiftScenarioLabel.LOW, ":"),
+                (RedshiftScenarioLabel.MED, "-"),
+                (RedshiftScenarioLabel.HIGH, "--"),
             ]:
                 z = self.source.redshift_by_label[label]
                 self.source.spectral_model_by_label[label].spectral_model.plot(
@@ -912,7 +1157,7 @@ class SourceAnalysis:
             r"$E^{2} \times$ Flux Sensitivity / $erg \cdot cm^{-2} \cdot s^{-1}$"
         )
         ax.grid(which="both", linestyle=":")
-        ax.legend(loc="upper right", fontsize="small")
+        ax.legend(loc="upper right", fontsize="x-small")
         fig.tight_layout()
 
         if out_path is not None:
@@ -940,15 +1185,18 @@ def source_validity_check(source: Source, output_table: QTable) -> bool:
         np.isfinite(source.row["cos_theta_mean"])
         and np.isfinite(source.row["sin_delta_mean"])
     ):
-        output_table["status"] = ["not_observable"]
+        output_table["status"] = [AnalysisStatus.NOT_OBSERVABLE]
         return False
 
-    if source.origin == "unk":
-        output_table["status"] = ["unknown_origin"]
+    if source.origin == SourceOrigin.UNKNOWN:
+        output_table["status"] = [AnalysisStatus.UNKNOWN_ORIGIN]
         return False
 
-    if not source.has_redshift_scenarios and source.origin == "egal":
-        output_table["status"] = ["no_usable_redshift"]
+    if (
+        not source.has_redshift_scenarios
+        and source.origin == SourceOrigin.EXTRAGALACTIC
+    ):
+        output_table["status"] = [AnalysisStatus.NO_USABLE_REDSHIFT]
         return False
 
     return True
@@ -962,7 +1210,7 @@ def create_output_table(
 ) -> QTable:
     output_table = source_table.copy()
 
-    output_table["status"] = ["not_run"]
+    output_table["status"] = [AnalysisStatus.NOT_RUN]
     output_table["sigma_target"] = [sigma_target]
 
     output_table["matched_node_zen"] = [np.nan * u.deg]
