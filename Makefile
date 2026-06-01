@@ -1,6 +1,5 @@
 PROFILE ?= ./sandsnake_dpps/profiles/local
 CONFIG ?= ./examples/core_analysis_config.yaml
-SNAKEFLAGS ?= --printshellcmds --show-failed-logs
 BUILD_DIR ?= build
 
 
@@ -11,7 +10,7 @@ CONFIGFLAG = --configfile $(CONFIG)
 THESIS_CONFIG_ROOT = ./examples/thesis
 
 all: | $(BUILD_DIR)
-	snakemake $(SNAKEFILE) $(PROFILEFLAG) $(CONFIGFLAG) $(SNAKEFLAGS) \
+	snakemake $(SNAKEFILE) $(PROFILEFLAG) $(CONFIGFLAG) \
 		--config build_dir=$(BUILD_DIR)
 
 $(BUILD_DIR):

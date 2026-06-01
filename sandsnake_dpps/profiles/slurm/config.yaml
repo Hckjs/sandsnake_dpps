@@ -22,5 +22,6 @@ slurm-efficiency-threshold: 0.8
 
 rerun-incomplete: true
 printshellcmds: true
+show-failed-logs: true
 scheduler: greedy
 use-conda: true
