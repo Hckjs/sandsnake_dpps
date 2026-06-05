@@ -27,7 +27,7 @@ from gammapy.modeling.models import (
 from regions import PointSkyRegion
 from scipy.optimize import curve_fit
 
-from core.scripts.mc.irf_plots import add_sensitivity_comparisons
+from core.scripts.mc.irf_plots import add_sensitivity_comparisons, CTAO_COLORS
 from plugins.fermi.scripts.process_catalog import VisibilityConfig, get_B_direction
 from plugins.fermi.scripts.catalog_priors import RedshiftSource, SourceOrigin
 from enum import StrEnum
@@ -1034,6 +1034,7 @@ class SourceAnalysis:
                 capsize=2,
                 label=f"{catalog_label} flux points",
                 zorder=5,
+                color=CTAO_COLORS["cherenkov_blue"],
             )
 
         if np.any(is_upper_limit):
@@ -1056,6 +1057,8 @@ class SourceAnalysis:
                 capsize=2,
                 label=f"{catalog_label} upper limits",
                 zorder=5,
+                color=CTAO_COLORS["cherenkov_blue"],
+                alpha=0.5,
             )
 
     def plot_source_model_with_sensitivities(
@@ -1082,7 +1085,14 @@ class SourceAnalysis:
 
         fig, ax = plt.subplots()
 
-        for obstime in self.irf_node.obstimes:
+        obstimes = self.irf_node.obstimes
+
+        if len(obstimes) == 1:
+            alphas = np.array([1.0])
+        else:
+            alphas = np.linspace(0.3, 1.0, len(obstimes))
+
+        for obstime, alpha in zip(obstimes, alphas, strict=True):
             sens = self.irf_node.load_benchmark(obstime)
             energy_center = 0.5 * (sens["ENERG_LO"] + sens["ENERG_HI"])
             xerr = 0.5 * (sens["ENERG_HI"] - sens["ENERG_LO"])
@@ -1090,11 +1100,12 @@ class SourceAnalysis:
             ax.errorbar(
                 energy_center.flatten(),
                 sens["ENERGY_FLUX_SENSITIVITY"].flatten(),
-                xerr=xerr,
+                xerr=xerr.flatten(),
                 ls="",
+                color=CTAO_COLORS["interstellar_indigo"],
+                alpha=alpha,
                 label=f"CTAO-N - {obstime:g}h",
             )
-
         self._plot_fermi_flux_points(ax)
 
         if self.source.has_prior_redshift_scenarios:
@@ -1119,7 +1130,7 @@ class SourceAnalysis:
                 energy.to_value(u.TeV),
                 np.minimum(y_low.value, y_high.value),
                 np.maximum(y_low.value, y_high.value),
-                color="tab:blue",
+                color=CTAO_COLORS["cosmic_azure"],
                 alpha=0.15,
                 label="redshift-prior range",
             )
@@ -1135,6 +1146,7 @@ class SourceAnalysis:
                     ax=ax,
                     label=f"{self.source.name} {label}={z:.3g}",
                     sed_type="e2dnde",
+                    color=CTAO_COLORS["cosmic_azure"],
                     linestyle=linestyle,
                 )
         else:
@@ -1143,6 +1155,7 @@ class SourceAnalysis:
                 ax=ax,
                 label=self.source.name,
                 sed_type="e2dnde",
+                color=CTAO_COLORS["cherenkov_blue"],
             )
 
         add_sensitivity_comparisons(ax, energy_limits=e_lim)

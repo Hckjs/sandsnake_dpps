@@ -13,6 +13,15 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 offset = 0.0 * u.deg  # TODO: Should not be hardcoded, just on-axis for now
 e_lim = [5.0e-3, 5.0e2]
 
+CTAO_COLORS = {
+    "galaxy_blue": "#00004A",  # primary, dark navy
+    "cherenkov_blue": "#00E4D8",  # primary, cyan/turquoise
+    "moon_gray": "#F5F5F5",  # primary, background/light gray
+    "white": "#FFFFFF",
+    "cosmic_azure": "#007AFF",  # secondary, vivid blue
+    "interstellar_indigo": "#00009C",  # secondary, saturated indigo
+}
+
 
 def plot_Crab_SED(emin, emax, percentage=100, ax=None, **kwargs):
     """
@@ -297,9 +306,9 @@ def add_sensitivity_comparisons(ax, energy_limits=e_lim):
     ax.plot(
         ctao_req_e,
         ctao_req_sens,
-        color="red",
+        color=CTAO_COLORS["galaxy_blue"],
         label="CTAO-N Req. (50h)",
-        alpha=0.5,
+        alpha=0.8,
     )
 
     veritas_data = np.loadtxt(
@@ -314,10 +323,10 @@ def add_sensitivity_comparisons(ax, energy_limits=e_lim):
             * SPECTRA[Spectra.CRAB_HEGRA](veritas_e * u.TeV)
             * (veritas_e * u.TeV) ** 2
         ).to(ENERGY_FLUX_UNIT),
-        color="blue",
+        color=CTAO_COLORS["galaxy_blue"],
         label="VERITAS (50h)",
         linestyle="dashed",
-        alpha=0.5,
+        alpha=0.8,
     )
 
     magic_e, magic_flux = np.genfromtxt(
@@ -328,8 +337,8 @@ def add_sensitivity_comparisons(ax, energy_limits=e_lim):
     ax.plot(
         (magic_e * u.GeV).to(u.TeV).value,
         magic_flux * u.Unit("TeV cm-2 s-1").to(ENERGY_FLUX_UNIT),
-        color="green",
+        color=CTAO_COLORS["galaxy_blue"],
         label="MAGIC (50h)",
-        linestyle="dashed",
-        alpha=0.5,
+        linestyle="dotted",
+        alpha=0.8,
     )
