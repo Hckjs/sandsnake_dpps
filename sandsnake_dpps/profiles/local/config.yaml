@@ -7,6 +7,7 @@ jobs: 1
 # keep-going: True
 rerun-incomplete: True
 printshellcmds: True
+show-failed-logs: True
 scheduler: greedy
 use-conda: True
 

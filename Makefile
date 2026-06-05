@@ -1,12 +1,12 @@
 PROFILE ?= ./sandsnake_dpps/profiles/local
 CONFIG ?= ./examples/core_analysis_config.yaml
-SNAKEFLAGS ?= --printshellcmds --show-failed-logs
 BUILD_DIR ?= build
 
 
 SNAKEFILE = --snakefile sandsnake_dpps/workflow/Snakefile
 PROFILEFLAG = --profile $(PROFILE)
 CONFIGFLAG = --configfile $(CONFIG)
+SNAKEFLAGS ?= #--dry-run
 
 THESIS_CONFIG_ROOT = ./examples/thesis
 
