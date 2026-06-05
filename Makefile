@@ -6,11 +6,12 @@ BUILD_DIR ?= build
 SNAKEFILE = --snakefile sandsnake_dpps/workflow/Snakefile
 PROFILEFLAG = --profile $(PROFILE)
 CONFIGFLAG = --configfile $(CONFIG)
+SNAKEFLAGS ?= #--dry-run
 
 THESIS_CONFIG_ROOT = ./examples/thesis
 
 all: | $(BUILD_DIR)
-	snakemake $(SNAKEFILE) $(PROFILEFLAG) $(CONFIGFLAG) \
+	snakemake $(SNAKEFILE) $(PROFILEFLAG) $(CONFIGFLAG) $(SNAKEFLAGS) \
 		--config build_dir=$(BUILD_DIR)
 
 $(BUILD_DIR):
