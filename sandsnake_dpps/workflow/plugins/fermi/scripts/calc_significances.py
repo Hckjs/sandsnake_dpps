@@ -313,7 +313,7 @@ class Source:
         self,
         path: str | Path,
         *,
-        ebl_model: str = "dominguez",
+        ebl_model: str = "saldana-lopez21",
     ):
         self.path = Path(path)
         self.table = QTable.read(self.path, format="ascii.ecsv")
