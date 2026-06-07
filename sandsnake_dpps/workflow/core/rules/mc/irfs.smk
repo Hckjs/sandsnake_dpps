@@ -3,9 +3,7 @@ rule optimize_cuts:
     output:
         cuts=OUTPATHS["cuts"],
     input:
-        gammas=bind_wildcards(
-            mc_dl2_provider, particle="gamma_diffuse", split="test_cuts"
-        ),
+        gammas=bind_wildcards(mc_dl2_provider, particle="gamma", split="test_cuts"),
         protons=bind_wildcards(mc_dl2_provider, particle="proton", split="test_cuts"),
         electrons=bind_wildcards(
             mc_dl2_provider, particle="electron", split="test_cuts"
@@ -40,9 +38,7 @@ rule compute_irfs:
         irfs=OUTPATHS["irfs"],
         benchmarks=OUTPATHS["benchmarks"],
     input:
-        gammas=bind_wildcards(
-            mc_dl2_provider, particle="gamma_diffuse", split="test_irfs"
-        ),
+        gammas=bind_wildcards(mc_dl2_provider, particle="gamma", split="test_irfs"),
         protons=bind_wildcards(mc_dl2_provider, particle="proton", split="test_irfs"),
         electrons=bind_wildcards(
             mc_dl2_provider, particle="electron", split="test_irfs"
