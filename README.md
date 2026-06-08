@@ -21,10 +21,11 @@ Core building blocks in this repository:
   - `sandsnake_dpps/workflow/common/staging.smk` (staging rules that normalize external data into the internal layout)
   - `sandsnake_dpps/workflow/common/targets.smk` (declares the requested end products; Snakemake resolves all required upstream steps automatically)
 - **Profiles:** `sandsnake_dpps/profiles/local`, `sandsnake_dpps/profiles/slurm` (default Snakemake profiles for local and SLURM execution)
-- **Plugins:** `sandsnake_dpps/plugins/` (example plugin workflows that can be optionally included, e.g., Fermi analysis)
+- **Plugins:** `sandsnake_dpps/workflow/plugins/` (example plugin workflows that can be optionally included, e.g., Fermi analysis and stereo combination)
 - **Example configurations:**
   - `examples/core_analysis_config.yaml`
-  - `examples/fermi_analysis_config.yaml`
+  - `examples/plugins/fermi/fermi_analysis_config.yaml`
+  - `examples/plugins/stereo_combiner/stereo_combiner_config.yaml`
 
 ---
 
@@ -50,6 +51,7 @@ The pipeline is controlled by a YAML configuration and then resolved by Snakemak
 3. **Optionally load plugins**
    - Additional workflows can be included via `plugins`, for example:
      - `fermi`
+     - `stereo_combiner`
    - Plugins register their own final artifacts, which are built together with core targets.
 
 4. **Automatically resolve dependencies**
