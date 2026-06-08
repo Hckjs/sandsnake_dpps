@@ -13,7 +13,7 @@ process_catalog:
   end: "2028-04-01"
   step_minutes: 20.0
   alt_min: 60.0
-  write_plots: false # Be careful with multiprocessing when setting to true
+  write_plots: false
 
 redshift_priors:
   lower_quantile: 0.16
