@@ -126,13 +126,22 @@ rule stage_irfs:
 
 def select_config(config_name: str, plugin: str) -> str:
     if USER_CONFIGS_DIR is not None:
-        user_config = (
-            Path(USER_CONFIGS_DIR).expanduser().resolve()
-            / plugin
-            / f"{config_name}.yml"
-        )
+        user_config_dir = Path(USER_CONFIGS_DIR).expanduser().resolve()
+        user_config = user_config_dir / plugin / f"{config_name}.yml"
+
         if user_config.exists():
             return str(user_config)
+
+        message = (
+            f"Configured user_config_dir is set to {user_config_dir}, but no user "
+            f"configuration file was found for plugin {plugin!r} and config "
+            f"{config_name!r} at {user_config}. User configuration files must "
+            "be placed at <user_config_dir>/<plugin>/<config_name>.yml, must "
+            "use the .yml extension, and must be named exactly "
+            f"{config_name}.yml. Expected path for this configuration: "
+            f"{user_config}. Falling back to the default configuration file."
+        )
+        smk_logger.warning(message)
 
     if plugin == "core":
         DEFAULT_CONFIG_DIR = CORE_CONFIGS_DIR
@@ -150,11 +159,22 @@ def select_config(config_name: str, plugin: str) -> str:
 
 def select_env(env_name: str, plugin: str) -> str:
     if USER_ENVS_DIR is not None:
-        user_env = (
-            Path(USER_ENVS_DIR).expanduser().resolve() / plugin / f"{env_name}.yaml"
-        )
+        user_env_dir = Path(USER_ENVS_DIR).expanduser().resolve()
+        user_env = user_env_dir / plugin / f"{env_name}.yaml"
+
         if user_env.exists():
             return str(user_env)
+
+        message = (
+            f"Configured user_env_dir is set to {user_env_dir}, but no user "
+            f"environment file was found for plugin {plugin!r} and environment "
+            f"{env_name!r} at {user_env}. User environment files must be placed "
+            "at <user_env_dir>/<plugin>/<env_name>.yaml, must use the .yaml "
+            f"extension, and must be named exactly {env_name}.yaml. Expected "
+            f"path for this environment: {user_env}. Falling back to the "
+            "default environment file."
+        )
+        smk_logger.warning(message)
 
     if plugin == "core":
         DEFAULT_ENV_DIR = CORE_ENVS_DIR
