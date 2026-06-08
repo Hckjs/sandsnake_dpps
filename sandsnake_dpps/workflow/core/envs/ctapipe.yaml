@@ -3,7 +3,9 @@ channels:
   - conda-forge
 dependencies:
   - python=3.13
+  - ctapipe
   - pip
   - pip:
       - pyirf
-      - git+https://github.com/Hckjs/ctapipe.git@stereo_combiner
+    # If you want to use a specific branch:
+    #- git+https://github.com/cta-observatory/ctapipe.git@main

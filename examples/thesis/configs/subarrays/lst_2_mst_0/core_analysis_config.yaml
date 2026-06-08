@@ -1,35 +1,34 @@
-run_tag: "full_array"
-user_config_dir: ./examples/thesis/full_array
-user_env_dir: null
+run_tag: "lst_2_mst_0"
+user_config_dir: ./examples/thesis/subarrays/lst_2_mst_0/
+user_env_dir: ./examples/thesis/envs
 
 targets:
   mc_simtel: false
-  mc_dl1: true
+  mc_dl1: false
   mc_dl1_merged: false
   mc_dl2: false
   rf_energy_regressor: false
   rf_particle_classifier: false
   rf_geometry_reconstructor: false
-  rf_performance_plots: true
+  rf_performance_plots: false
   irfs: true
   irfs_plots: true
 
 inputs:
   mc_simtel: null
-  mc_dl1: /home/jonas/repos/sandsnake_dpps/data/CTAO/mc/dl1/
-  mc_dl1_merged: null
+  mc_dl1: null
+  mc_dl1_merged: /home/jonas/repos/sandsnake_dpps/build/full_array/mc/dl1_merged
   mc_dl2: null # Only if all three properties are reconstructed!
-  models: null
+  models: /home/jonas/repos/sandsnake_dpps/build/full_array/models
   irfs: null
   benchmarks: null
   cuts: null
 
 # [zen, az]
 pointings:
-  - [20, 180]
+  - [20, 0]
 
-obstimes:
-  # hours
+obstimes: # hours
   - 50
   - 5
   - 0.5
@@ -38,4 +37,4 @@ obstimes:
 train_size: 0.6
 cuts_size: 0.5
 
-plugins: ["fermi", "stereo_combiner"]
+plugins: ["fermi"] #, "stereo_combiner"]
