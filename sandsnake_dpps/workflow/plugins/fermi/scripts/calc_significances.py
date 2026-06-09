@@ -1130,9 +1130,8 @@ class SourceAnalysis:
                 energy.to_value(u.TeV),
                 np.minimum(y_low.value, y_high.value),
                 np.maximum(y_low.value, y_high.value),
-                color=CTAO_COLORS["cosmic_azure"],
+                color=CTAO_COLORS["cherenkov_blue"],
                 alpha=0.15,
-                label="redshift-prior range",
             )
 
             for label, linestyle in [
@@ -1144,9 +1143,9 @@ class SourceAnalysis:
                 self.source.spectral_model_by_label[label].spectral_model.plot(
                     energy_bounds=energy_bounds,
                     ax=ax,
-                    label=f"{self.source.name} {label}={z:.3g}",
+                    label=f"{label}={z:.3g}",
                     sed_type="e2dnde",
-                    color=CTAO_COLORS["cosmic_azure"],
+                    color=CTAO_COLORS["cherenkov_blue"],
                     linestyle=linestyle,
                 )
         else:
@@ -1164,7 +1163,7 @@ class SourceAnalysis:
         ax.set_xlim(e_lim)
         ax.set_xscale("log")
         ax.set_yscale("log")
-        ax.set_title("Sensitivity")
+        ax.set_title(self.source.name)
         ax.set_xlabel(r"$E_{True}$ / TeV")
         ax.set_ylabel(
             r"$E^{2} \times$ Flux Sensitivity / $erg \cdot cm^{-2} \cdot s^{-1}$"

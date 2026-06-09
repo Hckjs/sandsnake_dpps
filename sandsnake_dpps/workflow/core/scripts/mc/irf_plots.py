@@ -323,7 +323,7 @@ def add_sensitivity_comparisons(ax, energy_limits=e_lim):
             * SPECTRA[Spectra.CRAB_HEGRA](veritas_e * u.TeV)
             * (veritas_e * u.TeV) ** 2
         ).to(ENERGY_FLUX_UNIT),
-        color=CTAO_COLORS["galaxy_blue"],
+        color=CTAO_COLORS["cosmic_azure"],
         label="VERITAS (50h)",
         linestyle="dashed",
         alpha=0.8,
@@ -337,7 +337,7 @@ def add_sensitivity_comparisons(ax, energy_limits=e_lim):
     ax.plot(
         (magic_e * u.GeV).to(u.TeV).value,
         magic_flux * u.Unit("TeV cm-2 s-1").to(ENERGY_FLUX_UNIT),
-        color=CTAO_COLORS["galaxy_blue"],
+        color=CTAO_COLORS["cosmic_azure"],
         label="MAGIC (50h)",
         linestyle="dotted",
         alpha=0.8,
