@@ -193,8 +193,13 @@ def build_redshift_prior_table(
 
     prior_table = empty_redshift_prior_table()
 
-    for group in ["bll", "fsrq"]:
-        mask = valid_z & (source_classes == group)
+    prior_groups = [
+        (RedshiftSource.PRIOR_BLL, "bll"),
+        (RedshiftSource.PRIOR_FSRQ, "fsrq"),
+    ]
+
+    for prior_group, source_class in prior_groups:
+        mask = valid_z & (source_classes == source_class)
         n_group = int(mask.sum())
 
         if n_group < config.min_sources_per_group:
@@ -204,7 +209,7 @@ def build_redshift_prior_table(
 
         prior_table.add_row(
             {
-                "z_prior_group": group,
+                "z_prior_group": prior_group,
                 "n_z": n_group,
                 "z_min": float(np.min(z_group)),
                 "z_q_low": float(np.quantile(z_group, config.lower_quantile)),

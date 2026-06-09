@@ -131,7 +131,7 @@ If you want to generate sensitivity-related artifacts/plots from existing DL1 fi
 
 Dry run: only builds the workflow DAG and shows which files/rules would be executed (no jobs are actually run, no outputs are created).
 ```bash
-make CONFIG=path/to/your/core_analysis_config.yaml SNAKEFLAGS="--dry-run --printshellcmds --show-failed-logs"
+make CONFIG=path/to/your/core_analysis_config.yaml SNAKEFLAGS="--dry-run"
 ```
 
 Use a custom Snakemake profile (e.g. local/SLURM) by pointing PROFILE to the profile directory; the workflow is executed with the settings defined in that profile.
@@ -144,7 +144,7 @@ Important variables from the `Makefile`:
 - `CONFIG` – path to the configuration file (default: `examples/core_analysis_config.yaml`)
 - `PROFILE` – path to profile dir including a `config.yaml` (default: `sandsnake_dpps/profiles/local`)
 - `BUILD_DIR` – output directory (default: `build`)
-- `SNAKEFLAGS` – additional Snakemake flags e.g. `--dry-run` (default includes `--printshellcmds --show-failed-logs`)
+- `SNAKEFLAGS` – additional Snakemake flags e.g. `--dry-run`
 
 
 **Note:** If `mc_dl1` is set both as an external input (`inputs.mc_dl1`) and as a requested target (`targets` contains `mc_dl1`), the workflow reprocesses DL1 (instead of only consuming the staged input).
