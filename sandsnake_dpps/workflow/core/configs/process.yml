@@ -20,7 +20,7 @@ DataWriter:
   Contact:
     name: Jonas Hackfeld
     email: Jonas.Hackfeld@ruhr-uni-bochum.de
-    organization: RUB
+    organization: RUB/TU-Dortmund
 
   Instrument:
     site: CTAO-North
@@ -40,6 +40,12 @@ CameraCalibrator:
   image_extractor_type: # PROD6 uses NPWS
     - ["type", "*", "NeighborPeakWindowSum"]
     - ["type", "*FlashCam", "FlashCamExtractor"]
+
+  NeighborPeakWindowSum:
+    window_width: 7
+    window_shift: 3
+    local_weight: 0
+    apply_integration_correction: true
 
   LocalPeakWindowSum: # LST currently uses LPWS
     window_width: 7
@@ -69,11 +75,11 @@ ImageProcessor:
     pedestal_factor: 2.5
     # inherited from TailcutsImageCleaner:
     picture_threshold_pe: # top-level threshold in photoelectrons
-      - [type, "LST*", 8.5]
+      - [type, "LST*", 9]
       - [type, "MST*NectarCam", 9.0]
       - [type, "MST*FlashCam", 9.0]
     boundary_threshold_pe: # second-level threshold in photoelectrons
-      - [type, "LST*", 4.25]
+      - [type, "LST*", 4.5]
       - [type, "MST*NectarCam", 4.5]
       - [type, "MST*FlashCam", 4.5]
     keep_isolated_pixels: false # If False, pixels with  < min_picture_neighbors are removed.

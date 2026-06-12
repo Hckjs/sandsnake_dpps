@@ -7,20 +7,12 @@ from pathlib import Path
 
 from ctapipe.irf.spectra import Spectra, SPECTRA, ENERGY_FLUX_UNIT
 from gammapy.irf import EnergyDispersion2D, EffectiveAreaTable2D, Background2D
+from core.scripts.colors import CTAO_COLORS, CTAO_CMAP_R
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 
 offset = 0.0 * u.deg  # TODO: Should not be hardcoded, just on-axis for now
 e_lim = [5.0e-3, 5.0e2]
-
-CTAO_COLORS = {
-    "galaxy_blue": "#00004A",  # primary, dark navy
-    "cherenkov_blue": "#00E4D8",  # primary, cyan/turquoise
-    "moon_gray": "#F5F5F5",  # primary, background/light gray
-    "white": "#FFFFFF",
-    "cosmic_azure": "#007AFF",  # secondary, vivid blue
-    "interstellar_indigo": "#00009C",  # secondary, saturated indigo
-}
 
 
 def plot_Crab_SED(emin, emax, percentage=100, ax=None, **kwargs):
@@ -69,7 +61,11 @@ def plot_Crab_SED(emin, emax, percentage=100, ax=None, **kwargs):
 def plot_a_eff(irfs_path):
     fig, ax = plt.subplots()
     aeff_table = EffectiveAreaTable2D.read(irfs_path, hdu="EFFECTIVE AREA")
-    aeff_table.plot_energy_dependence(ax=ax, offset=[offset])
+    aeff_table.plot_energy_dependence(
+        ax=ax,
+        offset=[offset],
+        color=CTAO_COLORS["interstellar_indigo"],
+    )
     ax.set_yscale("log")
     ax.set_xlim(e_lim)
     ax.grid(which="both", linestyle=":")
@@ -97,6 +93,7 @@ def plot_energy(irfs_path, benchmarks_path):
         e_resolution["RESOLUTION"].flatten(),
         xerr=0.5 * (e_resolution["ENERG_HI"] - e_resolution["ENERG_LO"]),
         ls="",
+        color=CTAO_COLORS["interstellar_indigo"],
     )
 
     ax_res.set_xscale("log")
@@ -108,7 +105,7 @@ def plot_energy(irfs_path, benchmarks_path):
     fig_res.tight_layout()
 
     # Energy Bias
-    edisp_table.plot_bias(ax=ax_bias, offset=offset, add_cbar=True)
+    edisp_table.plot_bias(ax=ax_bias, offset=offset, add_cbar=True, cmap=CTAO_CMAP_R)
     ax_bias.set_title("Energy Bias")
     ax_bias.set_xlabel(r"$E_{True}$ / TeV")
     ax_bias.set_ylabel(r"$E_{Reco}/E_{True}$")
@@ -120,6 +117,7 @@ def plot_energy(irfs_path, benchmarks_path):
     edisp_kernel.plot_matrix(
         ax=ax_mat,
         add_cbar=True,
+        cmap=CTAO_CMAP_R,
     )
     ax_mat.plot(x, x, color="black", linestyle="--")
     ax_mat.set_title("Energy Migration Matrix")
@@ -144,6 +142,7 @@ def plot_angular_resolution(benchmarks_path):
         ang_res["ANGULAR_RESOLUTION_68"].flatten(),
         xerr=0.5 * (ang_res["ENERG_HI"] - ang_res["ENERG_LO"]),
         ls="",
+        color=CTAO_COLORS["interstellar_indigo"],
     )
 
     ax.set_xscale("log")
@@ -172,11 +171,12 @@ def plots_cuts_distribution(cuts_path):
             theta_cut["center"] - theta_cut["low"],
             theta_cut["high"] - theta_cut["center"],
         ),
+        color=CTAO_COLORS["interstellar_indigo"],
     )
     ax_cuts[0].set_xlim(e_lim)
     ax_cuts[0].set_xscale("log")
-    ax_cuts[0].set_title(r"$\Theta$ cuts")
-    ax_cuts[0].set_ylabel(r"$\Theta$ cuts")
+    ax_cuts[0].set_title(r"$\Theta$ Cuts")
+    ax_cuts[0].set_ylabel(r"$\Theta$ Cut")
     ax_cuts[0].set_xlabel(r"$E_{True}$ / TeV")
     ax_cuts[0].grid(which="both", linestyle=":")
 
@@ -185,12 +185,13 @@ def plots_cuts_distribution(cuts_path):
         gh_cut["center"],
         gh_cut["cut"],
         xerr=(gh_cut["center"] - gh_cut["low"], gh_cut["high"] - gh_cut["center"]),
+        color=CTAO_COLORS["interstellar_indigo"],
     )
 
     ax_cuts[1].set_xlim(e_lim)
     ax_cuts[1].set_xscale("log")
     ax_cuts[1].set_title(r"$\gamma$/H Cuts")
-    ax_cuts[1].set_ylabel(r"$\gamma$/H Cuts")
+    ax_cuts[1].set_ylabel(r"$\gamma$/H Cut")
     ax_cuts[1].set_xlabel(r"$E_{True}$ / TeV")
     ax_cuts[1].grid(which="both", linestyle=":")
 
@@ -198,48 +199,28 @@ def plots_cuts_distribution(cuts_path):
     return fig_cuts
 
 
-def plot_background_rate(irfs_path):
-    figs = []
-    # background rate
+def plot_background_rate_energy(irfs_path, offset=0.0 * u.deg):
+    """Plot background rate as function of reconstructed energy for one offset."""
+
     bkg_table = Background2D.read(irfs_path, hdu="BACKGROUND")
-    fig_off_dep, axes_off_dep = plt.subplots(1, 1)
-    fig_bkg, axes_bkg = plt.subplots(1, 1)
-    fig_e_dep, axes_e_dep = plt.subplots(1, 1)
-    fig_spec, axes_spec = plt.subplots(1, 1)
-    true_energy = [0.1, 0.5, 1, 10] * u.TeV
 
-    bkg_table.plot_offset_dependence(ax=axes_off_dep, energy=true_energy)
-    axes_off_dep.grid(which="both")
-    axes_off_dep.set_title("Background rate - offset dependence")
-    fig_off_dep.tight_layout()
-    figs.append(fig_off_dep)
+    fig, ax = plt.subplots()
 
-    bkg_table.plot(ax=axes_bkg)
-    axes_bkg.grid()
-    axes_bkg.set_title("Background rate - energy offset dependence")
-    fig_bkg.tight_layout()
-    figs.append(fig_bkg)
+    bkg_table.plot_energy_dependence(
+        ax=ax,
+        offset=[offset],
+        color=CTAO_COLORS["interstellar_indigo"],
+    )
 
-    bkg_offset = [0, 1, 2, 3, 4, 5] * u.deg
-    labels = []
-    for o in bkg_offset:
-        bkg_table.plot_energy_dependence(ax=axes_e_dep, offset=[o])
-        labels.append(f"offset = {o}")
-    axes_e_dep.legend().remove()
-    axes_e_dep.legend(labels)
-    axes_e_dep.grid(which="both")
-    axes_e_dep.set_title("For different offsets")
-    fig_e_dep.tight_layout()
-    figs.append(fig_e_dep)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_title(f"Background rate at offset = {offset:.1f}")
+    ax.set_xlabel(r"$E_\mathrm{reco}$ / TeV")
+    ax.set_ylabel(f"Background rate / {bkg_table.unit}")
+    ax.grid(which="both", linestyle=":")
 
-    bkg_table.plot_spectrum(ax=axes_spec)
-    axes_spec.grid(which="both")
-    axes_spec.legend().remove()
-    axes_spec.set_title("Integrated spectrum")
-    fig_spec.tight_layout()
-    figs.append(fig_spec)
-
-    return figs
+    fig.tight_layout()
+    return fig
 
 
 def plot_sensitivity(benchmarks_path):
@@ -306,7 +287,7 @@ def add_sensitivity_comparisons(ax, energy_limits=e_lim):
     ax.plot(
         ctao_req_e,
         ctao_req_sens,
-        color=CTAO_COLORS["galaxy_blue"],
+        color=CTAO_COLORS["cherenkov_blue"],
         label="CTAO-N Req. (50h)",
         alpha=0.8,
     )

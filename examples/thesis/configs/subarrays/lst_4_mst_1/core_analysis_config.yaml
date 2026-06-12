@@ -1,5 +1,5 @@
 run_tag: "lst_4_mst_1"
-user_config_dir: ./examples/thesis/subarrays/lst_4_mst_1/
+user_config_dir: ./examples/thesis/configs/subarrays/lst_4_mst_1/
 user_env_dir: ./examples/thesis/envs
 
 targets:
@@ -27,6 +27,7 @@ inputs:
 # [zen, az]
 pointings:
   - [20, 0]
+  - [20, 180]
 
 obstimes: # hours
   - 50

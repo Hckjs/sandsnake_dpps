@@ -10,6 +10,8 @@ from gammapy.irf import EffectiveAreaTable2D
 
 from ctapipe.reco.preprocessing import horizontal_to_telescope
 from core.scripts.mc.irf_plots import add_sensitivity_comparisons
+from core.scripts.colors import CTAO_CMAP
+
 
 e_lim = [5.0e-3, 5.0e2]
 
@@ -45,16 +47,15 @@ def stack_theta_hist(dl2_chunk):
 def plot_theta2(theta_hist_dict):
     fig_theta2, ax_theta2 = plt.subplots(1, 1)
     alpha = 0.5
-    cmap = plt.cm.get_cmap("viridis", len(theta_hist_dict))
+    colors = CTAO_CMAP(np.linspace(0.2, 0.8, len(theta_hist_dict)))
 
     for i, (combiner, (hist, edges)) in enumerate(theta_hist_dict.items()):
-        color = cmap(i)
         ax_theta2.stairs(
             hist,
             edges.to_value(u.deg**2),
             fill=False,
             alpha=alpha,
-            color=color,
+            color=colors[i],
             label=combiner,
         )
 
@@ -110,7 +111,7 @@ def plot_lon_lat(lon_lat_hist_dict, extent):
             hist.T,
             origin="lower",
             extent=extent,
-            cmap="viridis",
+            cmap=CTAO_CMAP,
             norm=LogNorm(clip=True),
             aspect="equal",
         )
@@ -132,9 +133,15 @@ def plot_lon_lat(lon_lat_hist_dict, extent):
 
 def plot_a_eff(irfs_dict):
     fig, ax = plt.subplots()
-    for combiner, irfs_path in irfs_dict.items():
+    colors = CTAO_CMAP(np.linspace(0.2, 0.8, len(irfs_dict)))
+    for i, (combiner, irfs_path) in enumerate(irfs_dict.items()):
         aeff_table = EffectiveAreaTable2D.read(irfs_path, hdu="EFFECTIVE AREA")
-        aeff_table.plot_energy_dependence(ax=ax, label=combiner, offset=[0.4] * u.deg)
+        aeff_table.plot_energy_dependence(
+            ax=ax,
+            label=combiner,
+            offset=[0.4] * u.deg,
+            color=colors[i],
+        )
     ax.legend()
     ax.set_yscale("log")
     ax.set_xlim(e_lim)
@@ -149,7 +156,8 @@ def plot_a_eff(irfs_dict):
 
 def plot_angular_resolution(benchmarks_dict):
     fig, ax = plt.subplots()
-    for combiner, benchmarks_path in benchmarks_dict.items():
+    colors = CTAO_CMAP(np.linspace(0.2, 0.8, len(benchmarks_dict)))
+    for i, (combiner, benchmarks_path) in enumerate(benchmarks_dict.items()):
         ang_res = QTable.read(benchmarks_path, hdu="ANGULAR RESOLUTION")
         ax.errorbar(
             (0.5 * (ang_res["ENERG_LO"] + ang_res["ENERG_HI"])).flatten(),
@@ -157,6 +165,7 @@ def plot_angular_resolution(benchmarks_dict):
             xerr=0.5 * (ang_res["ENERG_HI"] - ang_res["ENERG_LO"]),
             ls="",
             label=f"{combiner}",
+            clor=colors[i],
         )
 
     ax.set_xlim(e_lim)
@@ -174,7 +183,8 @@ def plot_angular_resolution(benchmarks_dict):
 
 def plot_energy_resolution(benchmarks_dict):
     fig, ax = plt.subplots()
-    for combiner, benchmarks_path in benchmarks_dict.items():
+    colors = CTAO_CMAP(np.linspace(0.2, 0.8, len(benchmarks_dict)))
+    for i, (combiner, benchmarks_path) in enumerate(benchmarks_dict.items()):
         e_res = QTable.read(benchmarks_path, hdu="ENERGY BIAS RESOLUTION")
         ax.errorbar(
             (0.5 * (e_res["ENERG_LO"] + e_res["ENERG_HI"])).flatten(),
@@ -182,6 +192,7 @@ def plot_energy_resolution(benchmarks_dict):
             xerr=0.5 * (e_res["ENERG_HI"] - e_res["ENERG_LO"]),
             ls="",
             label=f"{combiner}",
+            color=colors[i],
         )
 
     ax.set_xlim(e_lim)
@@ -199,7 +210,8 @@ def plot_energy_resolution(benchmarks_dict):
 
 def plot_sensitivity(benchmarks_dict):
     fig, ax = plt.subplots()
-    for combiner, benchmarks_path in benchmarks_dict.items():
+    colors = CTAO_CMAP(np.linspace(0.2, 0.8, len(benchmarks_dict)))
+    for i, (combiner, benchmarks_path) in enumerate(benchmarks_dict.items()):
         sens = QTable.read(benchmarks_path, hdu="SENSITIVITY")
         ax.errorbar(
             (0.5 * (sens["ENERG_LO"] + sens["ENERG_HI"])).flatten(),
@@ -207,6 +219,7 @@ def plot_sensitivity(benchmarks_dict):
             xerr=0.5 * (sens["ENERG_HI"] - sens["ENERG_LO"]),
             ls="",
             label=f"{combiner}",
+            color=colors[i],
         )
 
     add_sensitivity_comparisons(ax, energy_limits=e_lim)

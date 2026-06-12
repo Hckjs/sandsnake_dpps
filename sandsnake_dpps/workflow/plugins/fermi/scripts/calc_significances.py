@@ -27,7 +27,8 @@ from gammapy.modeling.models import (
 from regions import PointSkyRegion
 from scipy.optimize import curve_fit
 
-from core.scripts.mc.irf_plots import add_sensitivity_comparisons, CTAO_COLORS
+from core.scripts.mc.irf_plots import add_sensitivity_comparisons
+from core.scripts.colors import CTAO_COLORS
 from plugins.fermi.scripts.process_catalog import VisibilityConfig, get_B_direction
 from plugins.fermi.scripts.catalog_priors import RedshiftSource, SourceOrigin
 from enum import StrEnum
@@ -1034,7 +1035,7 @@ class SourceAnalysis:
                 capsize=2,
                 label=f"{catalog_label} flux points",
                 zorder=5,
-                color=CTAO_COLORS["cherenkov_blue"],
+                color=CTAO_COLORS["cherenkov_cyan"],
             )
 
         if np.any(is_upper_limit):
@@ -1057,7 +1058,7 @@ class SourceAnalysis:
                 capsize=2,
                 label=f"{catalog_label} upper limits",
                 zorder=5,
-                color=CTAO_COLORS["cherenkov_blue"],
+                color=CTAO_COLORS["cherenkov_cyan"],
                 alpha=0.5,
             )
 
@@ -1130,7 +1131,7 @@ class SourceAnalysis:
                 energy.to_value(u.TeV),
                 np.minimum(y_low.value, y_high.value),
                 np.maximum(y_low.value, y_high.value),
-                color=CTAO_COLORS["cherenkov_blue"],
+                color=CTAO_COLORS["cherenkov_cyan"],
                 alpha=0.15,
             )
 
@@ -1145,7 +1146,7 @@ class SourceAnalysis:
                     ax=ax,
                     label=f"{label}={z:.3g}",
                     sed_type="e2dnde",
-                    color=CTAO_COLORS["cherenkov_blue"],
+                    color=CTAO_COLORS["cherenkov_cyan"],
                     linestyle=linestyle,
                 )
         else:
@@ -1154,7 +1155,7 @@ class SourceAnalysis:
                 ax=ax,
                 label=self.source.name,
                 sed_type="e2dnde",
-                color=CTAO_COLORS["cherenkov_blue"],
+                color=CTAO_COLORS["cherenkov_cyan"],
             )
 
         add_sensitivity_comparisons(ax, energy_limits=e_lim)
