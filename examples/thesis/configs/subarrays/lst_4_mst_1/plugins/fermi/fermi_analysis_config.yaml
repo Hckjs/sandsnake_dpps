@@ -1,5 +1,5 @@
-fermi_catalogs_dir: /home/jonas/repos/sandsnake_dpps/data/FERMI_LAT
-gammapy_data_dir: /home/jonas/repos/sandsnake_dpps/data/gammapy-data
+fermi_catalogs_dir: null
+gammapy_data_dir: null
 
 fermi_targets:
   processed_sources: false

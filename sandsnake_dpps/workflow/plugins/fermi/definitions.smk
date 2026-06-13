@@ -1,8 +1,34 @@
 FERMI_DIR = PLUGINS_DIR / "fermi"
 FERMI_SCRIPTS_DIR = FERMI_DIR / "scripts"
+REPO_ROOT = WORKFLOW_DIR.parent[1]
 
-FERMI_CATALOGS_IN_DIR = Path(config.get("fermi_catalogs_dir"))
-GAMMAPY_DATA_DIR = Path(config.get("gammapy_data_dir"))
+DEFAULT_FERMI_CATALOGS_DIR = REPO_ROOT / "resources" / "FERMI_LAT"
+DEFAULT_GAMMAPY_DATA_DIR = REPO_ROOT / "resources" / "gammapy-data"
+
+
+def require_loaded_gammapy_data(gammapy_data_dir: Path):
+    """Fail early when the gammapy-data submodule is not checked out."""
+    required_paths = [
+        gammapy_data_dir / "README.md",
+        gammapy_data_dir / "ebl",
+    ]
+    if all(path.exists() for path in required_paths):
+        return
+
+    missing = ", ".join(str(path) for path in required_paths if not path.exists())
+    raise ValueError(
+        "The Fermi plugin requires the gammapy-data submodule to be loaded at "
+        f"{gammapy_data_dir}. Missing: {missing}. Run "
+        "`git submodule update --init --recursive resources/gammapy-data` "
+        "from the repository root before using the Fermi plugin."
+    )
+
+
+FERMI_CATALOGS_IN_DIR = Path(
+    config.get("fermi_catalogs_dir", DEFAULT_FERMI_CATALOGS_DIR)
+)
+GAMMAPY_DATA_DIR = Path(config.get("gammapy_data_dir", DEFAULT_GAMMAPY_DATA_DIR))
+require_loaded_gammapy_data(GAMMAPY_DATA_DIR)
 os.environ["GAMMAPY_DATA"] = str(GAMMAPY_DATA_DIR)
 
 FERMI_CATALOGS = {
