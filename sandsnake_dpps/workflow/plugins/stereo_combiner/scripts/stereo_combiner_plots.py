@@ -165,7 +165,7 @@ def plot_angular_resolution(benchmarks_dict):
             xerr=0.5 * (ang_res["ENERG_HI"] - ang_res["ENERG_LO"]),
             ls="",
             label=f"{combiner}",
-            clor=colors[i],
+            color=colors[i],
         )
 
     ax.set_xlim(e_lim)

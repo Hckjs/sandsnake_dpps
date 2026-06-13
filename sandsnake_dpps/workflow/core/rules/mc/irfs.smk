@@ -88,8 +88,8 @@ rule plot_irfs:
         mem_mb=2000,
     shell:
         """
-        PYTHONPATH={CORE_SCRIPTS_DIR.parent} \
-        python -m scripts.mc.plot_irfs \
+        PYTHONPATH={WORKFLOW_DIR} \
+        python -m core.scripts.mc.plot_irfs \
         --irfs-file {input.irfs} \
         --cuts-file {input.cuts} \
         --benchmark-file {input.benchmarks} \
