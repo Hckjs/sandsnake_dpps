@@ -1,6 +1,6 @@
 FERMI_DIR = PLUGINS_DIR / "fermi"
 FERMI_SCRIPTS_DIR = FERMI_DIR / "scripts"
-REPO_ROOT = WORKFLOW_DIR.parent[1]
+REPO_ROOT = WORKFLOW_DIR.parents[1]
 
 DEFAULT_FERMI_CATALOGS_DIR = REPO_ROOT / "resources" / "FERMI_LAT"
 DEFAULT_GAMMAPY_DATA_DIR = REPO_ROOT / "resources" / "gammapy-data"
@@ -25,9 +25,9 @@ def require_loaded_gammapy_data(gammapy_data_dir: Path):
 
 
 FERMI_CATALOGS_IN_DIR = Path(
-    config.get("fermi_catalogs_dir", DEFAULT_FERMI_CATALOGS_DIR)
+    config.get("fermi_catalogs_dir") or DEFAULT_FERMI_CATALOGS_DIR
 )
-GAMMAPY_DATA_DIR = Path(config.get("gammapy_data_dir", DEFAULT_GAMMAPY_DATA_DIR))
+GAMMAPY_DATA_DIR = Path(config.get("gammapy_data_dir") or DEFAULT_GAMMAPY_DATA_DIR)
 require_loaded_gammapy_data(GAMMAPY_DATA_DIR)
 os.environ["GAMMAPY_DATA"] = str(GAMMAPY_DATA_DIR)
 
