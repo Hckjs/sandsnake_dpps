@@ -675,7 +675,6 @@ def main(
     grid = VisibilityGrid.create(config)
     calculator = SourceVisibilityCalculator(grid, write_plots=write_plots)
 
-    breakpoint()
     process_sources(
         catalog=catalog,
         catalog_table=catalog_table,
