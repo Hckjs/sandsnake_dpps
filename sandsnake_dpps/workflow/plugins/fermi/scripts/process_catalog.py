@@ -593,7 +593,7 @@ def process_sources(
     ):
         source_name = clean_source_name(source["Source_Name"])
         if not source_name:
-            raise ValueError("Encountered source without Source_Name")
+            raise ValueError("Encountered source without Source_Name:")
 
         source_table = QTable(rows=[source], names=catalog_table.colnames)
         result = calculator.calculate(source)
@@ -675,6 +675,7 @@ def main(
     grid = VisibilityGrid.create(config)
     calculator = SourceVisibilityCalculator(grid, write_plots=write_plots)
 
+    breakpoint()
     process_sources(
         catalog=catalog,
         catalog_table=catalog_table,
