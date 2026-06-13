@@ -1,0 +1,3 @@
+[submodule "resources/gammapy-data"]
+	path = resources/gammapy-data
+	url = https://github.com/gammapy/gammapy-data.git
