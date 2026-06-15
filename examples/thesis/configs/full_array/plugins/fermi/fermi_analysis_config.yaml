@@ -1,0 +1,21 @@
+fermi_catalogs_dir: null
+gammapy_data_dir: null
+
+fermi_targets:
+  processed_sources: true
+  merged_source_significances: true
+
+fermi_inputs:
+  processed_sources: null
+
+process_catalog:
+  start: "2027-04-01"
+  end: "2028-04-01"
+  step_minutes: 20.0
+  alt_min: 60.0
+  write_plots: false
+
+redshift_priors:
+  lower_quantile: 0.16
+  upper_quantile: 0.84
+  min_sources_per_group: 50

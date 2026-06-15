@@ -66,10 +66,6 @@ def direction_results(data, axes):
     axes[1, 1].set_ylabel(r"$Azimuth_{reco}$")
 
 
-def roc_curve_sign():
-    return None
-
-
 def plot_alt_az_reco(data, axes):
     # just copied from lstchains lst_sensitivity_pyirf notebook - needs to be adapted
     fig, axs = plt.subplots(1, 5, figsize=(30, 4))

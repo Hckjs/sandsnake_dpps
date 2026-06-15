@@ -22,19 +22,22 @@ ParticleClassifier:
   n_jobs: -1
 
   stereo_combiner_cls: "StereoMeanCombiner"
-  StereoMeanCombiner: # Here you can set options for StereoMeanCombiner
+  StereoMeanCombiner:
+    # Here you can set options for StereoMeanCombiner
     weights: "aspect-weighted-intensity" # (e.g. which kind of weights to use).
 
 EnergyRegressor:
   n_jobs: -1
 
   stereo_combiner_cls: "StereoMeanCombiner"
-  StereoMeanCombiner: # Here you can set options for StereoMeanCombiner
+  StereoMeanCombiner:
+    # Here you can set options for StereoMeanCombiner
     weights: "aspect-weighted-intensity" # (e.g. which kind of weights to use).
 
 DispReconstructor:
   n_jobs: -1
 
   stereo_combiner_cls: "StereoMeanCombiner"
-  StereoMeanCombiner: # Here you can set options for StereoMeanCombiner
+  StereoMeanCombiner:
+    # Here you can set options for StereoMeanCombiner
     weights: "aspect-weighted-intensity" # (e.g. which kind of weights to use).

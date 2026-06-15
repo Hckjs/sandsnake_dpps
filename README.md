@@ -21,10 +21,11 @@ Core building blocks in this repository:
   - `sandsnake_dpps/workflow/common/staging.smk` (staging rules that normalize external data into the internal layout)
   - `sandsnake_dpps/workflow/common/targets.smk` (declares the requested end products; Snakemake resolves all required upstream steps automatically)
 - **Profiles:** `sandsnake_dpps/profiles/local`, `sandsnake_dpps/profiles/slurm` (default Snakemake profiles for local and SLURM execution)
-- **Plugins:** `sandsnake_dpps/plugins/` (example plugin workflows that can be optionally included, e.g., Fermi analysis)
+- **Plugins:** `sandsnake_dpps/workflow/plugins/` (example plugin workflows that can be optionally included, e.g., Fermi analysis and stereo combination)
 - **Example configurations:**
   - `examples/core_analysis_config.yaml`
-  - `examples/fermi_analysis_config.yaml`
+  - `examples/plugins/fermi/fermi_analysis_config.yaml`
+  - `examples/plugins/stereo_combiner/stereo_combiner_config.yaml`
 
 ---
 
@@ -50,6 +51,7 @@ The pipeline is controlled by a YAML configuration and then resolved by Snakemak
 3. **Optionally load plugins**
    - Additional workflows can be included via `plugins`, for example:
      - `fermi`
+     - `stereo_combiner`
    - Plugins register their own final artifacts, which are built together with core targets.
 
 4. **Automatically resolve dependencies**
@@ -129,7 +131,7 @@ If you want to generate sensitivity-related artifacts/plots from existing DL1 fi
 
 Dry run: only builds the workflow DAG and shows which files/rules would be executed (no jobs are actually run, no outputs are created).
 ```bash
-make CONFIG=path/to/your/core_analysis_config.yaml SNAKEFLAGS="--dry-run --printshellcmds --show-failed-logs"
+make CONFIG=path/to/your/core_analysis_config.yaml SNAKEFLAGS="--dry-run"
 ```
 
 Use a custom Snakemake profile (e.g. local/SLURM) by pointing PROFILE to the profile directory; the workflow is executed with the settings defined in that profile.
@@ -142,7 +144,7 @@ Important variables from the `Makefile`:
 - `CONFIG` – path to the configuration file (default: `examples/core_analysis_config.yaml`)
 - `PROFILE` – path to profile dir including a `config.yaml` (default: `sandsnake_dpps/profiles/local`)
 - `BUILD_DIR` – output directory (default: `build`)
-- `SNAKEFLAGS` – additional Snakemake flags e.g. `--dry-run` (default includes `--printshellcmds --show-failed-logs`)
+- `SNAKEFLAGS` – additional Snakemake flags e.g. `--dry-run`
 
 
 **Note:** If `mc_dl1` is set both as an external input (`inputs.mc_dl1`) and as a requested target (`targets` contains `mc_dl1`), the workflow reprocesses DL1 (instead of only consuming the staged input).

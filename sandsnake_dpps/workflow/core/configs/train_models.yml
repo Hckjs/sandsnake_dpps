@@ -103,7 +103,8 @@ TrainDispReconstructor:
         # for the models to use them.
 
     stereo_combiner_cls: "StereoMeanCombiner"
-    StereoMeanCombiner: # Here you can set options for StereoMeanCombiner
+    StereoMeanCombiner:
+      # Here you can set options for StereoMeanCombiner
       weights: "aspect-weighted-intensity" # (e.g. which kind of weights to use).
 
 TrainEnergyRegressor:

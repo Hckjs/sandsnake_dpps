@@ -1,6 +1,6 @@
 run_tag: "full_array"
-user_config_dir: null # "/home/jonas"
-user_env_dir: null # "/home/jonas"
+user_config_dir: null
+user_env_dir: null
 
 targets:
   mc_simtel: false
