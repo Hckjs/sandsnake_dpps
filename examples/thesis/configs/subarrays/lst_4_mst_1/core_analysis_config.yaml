@@ -17,9 +17,9 @@ targets:
 inputs:
   mc_simtel: null
   mc_dl1: null
-  mc_dl1_merged: /home/jonas/repos/sandsnake_dpps/build/full_array/mc/dl1_merged
+  mc_dl1_merged: ./build/full_array/mc/dl1_merged
   mc_dl2: null # Only if all three properties are reconstructed!
-  models: /home/jonas/repos/sandsnake_dpps/build/full_array/models
+  models: ./build/full_array/models
   irfs: null
   benchmarks: null
   cuts: null

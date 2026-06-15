@@ -6,7 +6,7 @@ fermi_targets:
   merged_source_significances: true
 
 fermi_inputs:
-  processed_sources: /home/jonas/repos/sandsnake_dpps/build/full_array/plugins/fermi
+  processed_sources: ./build/full_array/plugins/fermi
 
 process_catalog:
   start: "2027-04-01"
