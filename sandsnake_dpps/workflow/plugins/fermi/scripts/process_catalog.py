@@ -468,7 +468,7 @@ def read_and_prepare_catalogs(
         catalog_table, _ = trim_source_names(catalog_table, ["Source_Name"])
 
     ensure_redshift_prior_input_columns(catalog_table)
-    return catalog_table[:100], src_names_fgl_assoc_fhl[:100]
+    return catalog_table[:], src_names_fgl_assoc_fhl[:]
 
 
 def add_redshift_priors(
