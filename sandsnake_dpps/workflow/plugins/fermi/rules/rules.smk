@@ -43,9 +43,9 @@ rule calc_significances:
         PATHS["fermi:template:source_significances"],
     input:
         source=fermi_source_provider,
+        priors=fermi_priors_provider,
         irfs=TARGETS_IRFS("core", resolve=True),
         benchmarks=TARGETS_BENCHMARKS("core", resolve=True),
-        priors=PATHS["fermi:template:catalog_out_dirs"] + "/redshift_priors.ecsv",
     conda:
         select_env("plotting", "core")
     resources:
