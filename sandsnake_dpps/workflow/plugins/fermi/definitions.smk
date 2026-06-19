@@ -77,6 +77,12 @@ def fermi_source_provider(wc):
     return str(base / wc.catalog / wc.source / f"{wc.source}.ecsv")
 
 
+def fermi_priors_provider(wc):
+    fermi_inputs = config.get("fermi_inputs", None).get("processed_sources")
+    base = Path(fermi_inputs or FERMI_OUTDIR).expanduser().resolve()
+    return str(base / wc.catalog / "redshift_priors.ecsv")
+
+
 def fermi_source_significance_provider(catalog: str):
     def _call(wc):
         fermi_inputs = config.get("fermi_inputs", None).get("processed_sources")
