@@ -19,7 +19,7 @@ rule select_subarrays:
     benchmark:
         log_path(OUTPATHS["mc_dl1_merged"], ".benchmark")
     resources:
-        mem_mb=24000,
+        mem_mb=8000,
     shell:
         """
         ctapipe-process \
