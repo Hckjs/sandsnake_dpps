@@ -1,6 +1,5 @@
 ApplyModels:
   overwrite: true
-  allowed_tels: [1, 4]
 
 HDF5Merger:
   overwrite: true

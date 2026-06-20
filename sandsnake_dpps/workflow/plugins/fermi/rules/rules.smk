@@ -3,6 +3,34 @@ envvars:
     "GAMMAPY_DATA",
 
 
+ruleorder: select_subarrays > stage_mc_dl1_merged
+
+
+rule select_subarrays:
+    output:
+        PATHS["stage:mc_dl1_merged"] + PATHS["core:template:mc_dl1_merged"],
+    input:
+        data=_ext("mc_dl1_merged", re_none=False) + PATHS["core:template:mc_dl1_merged"],
+        config=PATHS["core:config:process"],
+    conda:
+        select_env("ctapipe", "core")
+    log:
+        provenance=log_path(OUTPATHS["mc_dl1_merged"], ".provenance"),
+    benchmark:
+        log_path(OUTPATHS["mc_dl1_merged"], ".benchmark")
+    resources:
+        mem_mb=24000,
+    shell:
+        """
+        ctapipe-process \
+        --input {input.data} \
+        --output {output[0]} \
+        --provenance-log {log.provenance} \
+        --config {input.config}\
+        --progress \
+        """
+
+
 checkpoint process_catalog:
     priority: 100
     output:
