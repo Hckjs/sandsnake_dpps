@@ -18,7 +18,6 @@ rule mc_dl1:
         --output {output} \
         --config {input.config} \
         --provenance-log {log.provenance} \
-        --progress \
         """
 
 

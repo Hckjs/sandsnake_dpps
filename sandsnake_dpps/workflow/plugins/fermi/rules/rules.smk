@@ -27,7 +27,6 @@ rule select_subarrays:
         --output {output[0]} \
         --provenance-log {log.provenance} \
         --config {input.config}\
-        --progress \
         """
 
 

@@ -1,5 +1,5 @@
 MergeTool:
-  progress_bar: true
+  progress_bar: false
   skip_broken_files: false
 
   HDF5Merger:
