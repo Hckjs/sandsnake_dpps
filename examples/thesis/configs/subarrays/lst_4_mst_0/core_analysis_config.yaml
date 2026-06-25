@@ -19,7 +19,7 @@ inputs:
   mc_dl1: null
   mc_dl1_merged: ./build/full_array/mc/dl1_merged
   mc_dl2: null # Only if all three properties are reconstructed!
-  models: ./build/full_array/models
+  models: null
   irfs: null
   benchmarks: null
   cuts: null
