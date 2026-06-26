@@ -105,7 +105,7 @@ PATHS = {
     "core:template:rf_geometry_reconstructor": "/zen_{zen}/az_{az}/rf_geometry_reconstructor_zen_{zen}_az_{az}.pkl",
     "core:template:mc_dl2": "/zen_{zen}/az_{az}/{particle}/{split}/{particle}_zen_{zen}_az_{az}_{split}.dl2.h5",
     "core:template:rf_performance_plots": "/zen_{zen}/az_{az}/model_performance_zen_{zen}_az_{az}.pdf",
-    "core:template:cuts": "/zen_{zen}/az_{az}/cuts_zen_{zen}_az_{az}_obs_{obstime}_hours.fits",
+    "core:template:cuts": "/zen_{zen}/az_{az}/cuts_zen_{zen}_az_{az}_obs_{obstime}_hours.fits.gz",
     "core:template:irfs": "/zen_{zen}/az_{az}/irfs_zen_{zen}_az_{az}_obs_{obstime}_hours.fits.gz",
     "core:template:benchmarks": "/zen_{zen}/az_{az}/benchmarks_zen_{zen}_az_{az}_obs_{obstime}_hours.fits.gz",
     "core:template:irf_plots": "/zen_{zen}/az_{az}/irfs_zen_{zen}_az_{az}_obs_{obstime}_hours.pdf",
