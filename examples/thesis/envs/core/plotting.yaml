@@ -5,6 +5,7 @@ dependencies:
   - python=3.13
   - ctaplot
   - gammapy
+  - regions=0.11
   - pyyaml
   - h5py
   - pip
