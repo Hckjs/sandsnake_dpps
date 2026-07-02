@@ -92,7 +92,7 @@ If you provide external data via `inputs.*`, files should follow the workflow's 
   - `inputs.mc_dl1_merged`: `zen_<ZEN>/az_<AZ>/<particle>/<split>/<particle>_zen_<ZEN>_az_<AZ>_<split>_merged.dl1.h5`
   - `inputs.mc_dl2`: `zen_<ZEN>/az_<AZ>/<particle>/<split>/<particle>_zen_<ZEN>_az_<AZ>_<split>.dl2.h5`
   - `inputs.models`: `zen_<ZEN>/az_<AZ>/rf_energy_regressor_zen_<ZEN>_az_<AZ>.pkl`, `rf_particle_classifier_...`, `rf_geometry_reconstructor_...`
-  - `inputs.cuts`: `zen_<ZEN>/az_<AZ>/cuts_zen_<ZEN>_az_<AZ>_obs_<OBSTIME>_hours.fits`
+  - `inputs.cuts`: `zen_<ZEN>/az_<AZ>/cuts_zen_<ZEN>_az_<AZ>_obs_<OBSTIME>_hours.fits.gz`
   - `inputs.irfs`: `zen_<ZEN>/az_<AZ>/irfs_zen_<ZEN>_az_<AZ>_obs_<OBSTIME>_hours.fits.gz`
   - `inputs.benchmarks`: `zen_<ZEN>/az_<AZ>/benchmarks_zen_<ZEN>_az_<AZ>_obs_<OBSTIME>_hours.fits.gz`
 
