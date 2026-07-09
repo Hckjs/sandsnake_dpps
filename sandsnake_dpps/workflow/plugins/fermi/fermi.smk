@@ -16,7 +16,7 @@ include: "definitions.smk"
 include: "rules/rules.smk"
 
 
-def check_fermi_targets(enabled_targets):
+def check_fermi_targets(config_targets):
     return
 
 
@@ -28,12 +28,12 @@ def resolve_fermi_targets():
         raise ValueError(
             "config['targets'] must be a mapping of target names to booleans"
         )
-    if not any(enabled_targets.values()):
+    if not any(config_targets.values()):
         raise ValueError("At least one fermi target must be set to true")
 
-    check_fermi_targets(enabled_targets)
+    check_fermi_targets(config_targets)
 
-    for t, enabled in enabled_targets.items():
+    for t, enabled in config_targets.items():
         if not enabled:
             continue
         if t == "merged_source_significances":

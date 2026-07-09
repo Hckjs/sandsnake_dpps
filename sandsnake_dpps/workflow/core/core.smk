@@ -20,7 +20,7 @@ include: "rules/mc/dl2.smk"
 include: "rules/mc/irfs.smk"
 
 
-def check_core_targets(enabled_targets):
+def check_core_targets(config_targets):
     inputs = config.get("inputs", None)
     if not isinstance(inputs, dict):
         raise ValueError("config['inputs'] must be a mapping of input names to paths")
@@ -45,7 +45,7 @@ def check_core_targets(enabled_targets):
             "Configured input path(s) do not exist:\n- " + "\n- ".join(missing_paths)
         )
 
-    active_targets = [target for target, enabled in enabled_targets.items() if enabled]
+    active_targets = [target for target, enabled in config_targets.items() if enabled]
 
     conflicting_targets = sorted(
         (set(provided_inputs) & set(active_targets)) - {"mc_dl1"}
@@ -85,9 +85,9 @@ def resolve_core_targets():
     if not any(config_targets.values()):
         raise ValueError("At least one core target must be set to true")
 
-    check_core_targets(enabled_targets)
+    check_core_targets(config_targets)
 
-    for t, enabled in enabled_targets.items():
+    for t, enabled in config_targets.items():
         if not enabled:
             continue
         if t == "mc_simtel":

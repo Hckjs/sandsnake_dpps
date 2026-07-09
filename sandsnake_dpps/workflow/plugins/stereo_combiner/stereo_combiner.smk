@@ -13,7 +13,7 @@ include: "definitions.smk"
 include: "rules/rules.smk"
 
 
-def check_stereo_combiner_targets(enabled_targets):
+def check_stereo_combiner_targets(config_targets):
     return
 
 
@@ -25,12 +25,12 @@ def resolve_stereo_combiner_targets():
         raise ValueError(
             "config['targets'] must be a mapping of target names to booleans"
         )
-    if not any(enabled_targets.values()):
+    if not any(config_targets.values()):
         raise ValueError("At least one stereo combiner target must be set to true")
 
-    check_stereo_combiner_targets(enabled_targets)
+    check_stereo_combiner_targets(config_targets)
 
-    for t, enabled in enabled_targets.items():
+    for t, enabled in config_targets.items():
         if not enabled:
             continue
         if t == "plot_reco_lon_lat":
