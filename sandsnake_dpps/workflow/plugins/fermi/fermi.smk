@@ -24,13 +24,9 @@ def resolve_fermi_targets():
     fermi_targets = []
     config_targets = config.get("fermi_targets", {})
 
-    if isinstance(config_targets, list):
-        enabled_targets = {target: True for target in config_targets}
-    elif isinstance(config_targets, dict):
-        enabled_targets = config_targets
-    else:
+    if not isinstance(config_targets, dict):
         raise ValueError(
-            "config['targets'] must be a mapping of target names to booleans or a list"
+            "config['targets'] must be a mapping of target names to booleans"
         )
     if not any(enabled_targets.values()):
         raise ValueError("At least one fermi target must be set to true")

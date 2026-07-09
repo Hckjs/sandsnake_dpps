@@ -21,7 +21,10 @@ include: "rules/mc/irfs.smk"
 
 
 def check_core_targets(enabled_targets):
-    inputs = config.get("inputs", {}) or {}
+    inputs = config.get("inputs", None)
+    if not isinstance(inputs, dict):
+        raise ValueError("config['inputs'] must be a mapping of input names to paths")
+
     provided_inputs = {
         key: Path(value).expanduser().resolve()
         for key, value in inputs.items()
@@ -73,17 +76,13 @@ def check_core_targets(enabled_targets):
 
 def resolve_core_targets():
     targets = TARGETS_ENVS()
-    config_targets = config.get("targets", {})
+    config_targets = config.get("targets", None)
 
-    if isinstance(config_targets, list):
-        enabled_targets = {target: True for target in config_targets}
-    elif isinstance(config_targets, dict):
-        enabled_targets = config_targets
-    else:
+    if not isinstance(config_targets, dict):
         raise ValueError(
-            "config['targets'] must be a mapping of target names to booleans or a list"
+            "config['targets'] must be a mapping of target names to booleans"
         )
-    if not any(enabled_targets.values()):
+    if not any(config_targets.values()):
         raise ValueError("At least one core target must be set to true")
 
     check_core_targets(enabled_targets)

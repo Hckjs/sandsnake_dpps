@@ -21,13 +21,9 @@ def resolve_stereo_combiner_targets():
     stereo_combiner_targets = []
     config_targets = config.get("stereo_combiner_targets", {})
 
-    if isinstance(config_targets, list):
-        enabled_targets = {target: True for target in config_targets}
-    elif isinstance(config_targets, dict):
-        enabled_targets = config_targets
-    else:
+    if not isinstance(config_targets, dict):
         raise ValueError(
-            "config['targets'] must be a mapping of target names to booleans or a list"
+            "config['targets'] must be a mapping of target names to booleans"
         )
     if not any(enabled_targets.values()):
         raise ValueError("At least one stereo combiner target must be set to true")
