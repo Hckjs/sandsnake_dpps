@@ -53,6 +53,16 @@ REDSHIFT_PRIOR_CONFIG = config.get("redshift_priors", {})
 CATALOG_CHUNK_CONFIG = config.get("catalog_chunks", {})
 
 
+def _fermi_input(input_key: str):
+    fermi_inputs = config.get("fermi_inputs", {})
+    if not isinstance(fermi_inputs, dict):
+        raise ValueError(
+            "config['fermi_inputs'] must be a mapping of input names to paths"
+        )
+
+    return fermi_inputs.get(input_key)
+
+
 def list_source_files(catalog_dir: Path):
     return sorted(
         f
@@ -72,20 +82,20 @@ def source_significance_files_from_sources(source_files):
 
 
 def fermi_source_provider(wc):
-    fermi_inputs = config.get("fermi_inputs", None).get("processed_sources")
+    fermi_inputs = _fermi_input("processed_sources")
     base = Path(fermi_inputs or FERMI_OUTDIR).expanduser().resolve()
     return str(base / wc.catalog / wc.source / f"{wc.source}.ecsv")
 
 
 def fermi_priors_provider(wc):
-    fermi_inputs = config.get("fermi_inputs", None).get("processed_sources")
+    fermi_inputs = _fermi_input("processed_sources")
     base = Path(fermi_inputs or FERMI_OUTDIR).expanduser().resolve()
     return str(base / wc.catalog / "redshift_priors.ecsv")
 
 
 def fermi_source_significance_provider(catalog: str):
     def _call(wc):
-        fermi_inputs = config.get("fermi_inputs", None).get("processed_sources")
+        fermi_inputs = _fermi_input("processed_sources")
         base = Path(fermi_inputs or FERMI_OUTDIR).expanduser().resolve()
 
         if fermi_inputs:

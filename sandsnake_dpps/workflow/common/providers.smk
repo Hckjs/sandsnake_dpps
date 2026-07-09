@@ -4,7 +4,11 @@
 
 
 def _ext(input_key: str, re_none: bool = True):
-    val = config.get("inputs", {}).get(input_key)
+    inputs = config.get("inputs", None)
+    if not isinstance(inputs, dict):
+        raise ValueError("config['inputs'] must be a mapping of input names to paths")
+
+    val = inputs.get(input_key)
     if val in (None, "", "null"):
         if re_none:
             return None
@@ -13,16 +17,13 @@ def _ext(input_key: str, re_none: bool = True):
     return str(Path(val).expanduser().resolve())
 
 
-def bind_wildcards(provider, **overrides):
-    def _call(wc):
-        data = dict(wc)
-        data.update(overrides)
-        if isinstance(provider, str):
-            return provider.format(**data)
-        path = provider(wc)
-        return path.format(**data)
-
-    return _call
+def _target(target_key: str) -> bool:
+    targets = config.get("targets", None)
+    if not isinstance(targets, dict):
+        raise ValueError(
+            "config['targets'] must be a mapping of target names to booleans"
+        )
+    return targets.get(target_key)
 
 
 def _select_input(input_key: str) -> str:
@@ -38,6 +39,18 @@ def _select_input(input_key: str) -> str:
     return "core"
 
 
+def bind_wildcards(provider, **overrides):
+    def _call(wc):
+        data = dict(wc)
+        data.update(overrides)
+        if isinstance(provider, str):
+            return provider.format(**data)
+        path = provider(wc)
+        return path.format(**data)
+
+    return _call
+
+
 # ------------------------------------------------------------------
 # MC providers
 # ------------------------------------------------------------------
@@ -45,7 +58,7 @@ def _select_input(input_key: str) -> str:
 
 def mc_simtel_provider(wc):
     # DL1 reprocessing
-    if _ext("mc_dl1") and "mc_dl1" in config.get("targets", []):
+    if _ext("mc_dl1") and _target("mc_dl1"):
         return mc_dl1_provider(wc)
 
     base = _select_input("mc_simtel")
@@ -120,7 +133,7 @@ def mc_dl1_split_provider(wc):
 
     base_dir = _ext("mc_dl1")
     # if Dl1 reprocessing
-    if base_dir and "mc_dl1" in config.get("targets", []):
+    if base_dir and _target("mc_dl1"):
         base_dir = PATHS["core:mc_dl1"]
 
     parent_dir = f"/zen_{wc.zen}/az_{wc.az}/{particle}"
