@@ -102,9 +102,9 @@ def main_from_snakemake(snakemake):
     main(
         snakemake.input.gamma,
         snakemake.input.proton,
-        snakemake.input.disp_model,
-        snakemake.input.e_reg_model,
-        snakemake.input.clf_model,
+        snakemake.input.model_disp,
+        snakemake.input.model_e_reg,
+        snakemake.input.model_p_clf,
         snakemake.input.config,
         snakemake.output[0],
     )
