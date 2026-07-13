@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 import numpy as np
 
 from ctapipe.io import TableLoader
-import dl2_rf_performance_plots as dl2_plots
+from core.scripts.mc import dl2_rf_performance_plots as dl2_plots
 
 if matplotlib.get_backend() == "pgf":
     from matplotlib.backends.backend_pgf import PdfPages
@@ -84,10 +84,10 @@ def main(
         # pdf.savefig(fig_feat)
 
 
-if __name__ == "__main__":
+def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("-g", "--gammas", required=True)
-    parser.add_argument("-p", "--protons", required=True)
+    parser.add_argument("-g", "--gamma", required=True)
+    parser.add_argument("-p", "--proton", required=True)
     parser.add_argument("-d", "--disp-model", required=True)
     parser.add_argument("-e", "--e-reg-model", required=True)
     parser.add_argument("-clf", "--clf-model", required=True)
@@ -95,11 +95,28 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output", required=True)
     parser.add_argument("--log-file")
     parser.add_argument("-v", "--verbose", action="store_true")
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+def main_from_snakemake(snakemake):
     main(
-        args.gammas,
-        args.protons,
+        snakemake.input.gamma,
+        snakemake.input.proton,
+        snakemake.input.disp_model,
+        snakemake.input.e_reg_model,
+        snakemake.input.clf_model,
+        snakemake.input.config,
+        snakemake.output[0],
+    )
+
+
+if "snakemake" in globals():
+    main_from_snakemake(snakemake)  # noqa: F821
+elif __name__ == "__main__":
+    args = parse_args()
+    main(
+        args.gamma,
+        args.proton,
         args.disp_model,
         args.e_reg_model,
         args.clf_model,

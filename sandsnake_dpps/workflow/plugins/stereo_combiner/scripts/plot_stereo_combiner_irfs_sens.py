@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
-from .stereo_combiner_plots import (
+from plugins.stereo_combiner.scripts.stereo_combiner_plots import (
     plot_a_eff,
     plot_angular_resolution,
     plot_sensitivity,
@@ -41,11 +41,20 @@ def main(irf_files, benchmark_files, output):
         pdf.savefig(fig_e_res)
 
 
-if __name__ == "__main__":
+def parse_args():
     parser = ArgumentParser()
     parser.add_argument("--input_irfs", required=True, nargs="+")
     parser.add_argument("--input_benchmarks", required=True, nargs="+")
     parser.add_argument("-o", "--output", required=True)
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+def main_from_snakemake(snakemake):
+    main(snakemake.input.irfs, snakemake.input.benchmarks, snakemake.output[0])
+
+
+if "snakemake" in globals():
+    main_from_snakemake(snakemake)  # noqa: F821
+elif __name__ == "__main__":
+    args = parse_args()
     main(args.input_irfs, args.input_benchmarks, args.output)

@@ -17,7 +17,15 @@ USER_ENVS_DIR = config.get("user_env_dir", None)
 
 RUN_TAG = config.get("run_tag", "default")
 
+MATPLOTLIBRC_PATH = WORKFLOW_DIR / "common/matplotlibrc"
 os.environ["PYTHONPATH"] = str(WORKFLOW_DIR)
+os.environ["MATPLOTLIBRC"] = str(MATPLOTLIBRC_PATH)
+
+
+envvars:
+    "PYTHONPATH",
+    "MATPLOTLIBRC",
+
 
 # ----------------------------------------------------------------------
 # Directory roots
@@ -118,9 +126,7 @@ OUTPATHS = {
     "mc_simtel": PATHS["core:mc_simtel"]
     + PATHS["core:template:mc_dl1"]
     + "/{filename}.simtel.gz",
-    "mc_dl1": PATHS["core:mc_dl1"]
-    + PATHS["core:template:mc_dl1"]
-    + "/{filename}.dl1.h5",
+    "mc_dl1": PATHS["core:mc_dl1"] + PATHS["core:template:mc_dl1"] + "/{filename}.dl1.h5",
     "mc_dl1_split": PATHS["stage:mc_dl1"] + PATHS["core:template:particle_split"],
     "mc_dl1_merged": PATHS["core:mc_dl1_merged"] + PATHS["core:template:mc_dl1_merged"],
     "apply_energy_regressor_train": PATHS["core:mc_dl1"]
@@ -169,7 +175,7 @@ def log_path(output_path: str, suffix: str):
     if p.suffix:
         base = p.parent
         filename = p.stem
-    # template dir
+        # template dir
     else:
         base = p
         filename = p.name

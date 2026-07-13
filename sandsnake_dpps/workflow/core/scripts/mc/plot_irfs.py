@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 import matplotlib
 
-from .irf_plots import (
+from core.scripts.mc.irf_plots import (
     plot_angular_resolution,
     plots_cuts_distribution,
     plot_energy,
@@ -14,14 +14,6 @@ if matplotlib.get_backend() == "pgf":
     from matplotlib.backends.backend_pgf import PdfPages
 else:
     from matplotlib.backends.backend_pdf import PdfPages
-
-
-parser = ArgumentParser()
-parser.add_argument("--irfs-file", required=True)
-parser.add_argument("--cuts-file", required=True)
-parser.add_argument("--benchmark-file", required=True)
-parser.add_argument("-o", "--output", required=True)
-args = parser.parse_args()
 
 
 def main(irfs_file, cuts_file, benchmark_file, output):
@@ -42,5 +34,26 @@ def main(irfs_file, cuts_file, benchmark_file, output):
         pdf.savefig(fig_bkg)
 
 
-if __name__ == "__main__":
-    main(**vars(args))
+def parse_args():
+    parser = ArgumentParser()
+    parser.add_argument("--irfs-file", required=True)
+    parser.add_argument("--cuts-file", required=True)
+    parser.add_argument("--benchmark-file", required=True)
+    parser.add_argument("-o", "--output", required=True)
+    return parser.parse_args()
+
+
+def main_from_snakemake(snakemake):
+    main(
+        snakemake.input.irfs,
+        snakemake.input.cuts,
+        snakemake.input.benchmarks,
+        snakemake.output[0],
+    )
+
+
+if "snakemake" in globals():
+    main_from_snakemake(snakemake)  # noqa: F821
+elif __name__ == "__main__":
+    args = parse_args()
+    main(args.irfs_file, args.cuts_file, args.benchmark_file, args.output)
