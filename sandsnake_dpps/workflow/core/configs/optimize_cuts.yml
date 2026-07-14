@@ -14,14 +14,13 @@ EventSelectionOptimizer:
 
 DL2EventPreprocessor:
   energy_reconstructor: "RandomForestRegressor"
-  geometry_reconstructor: "disp"
+  geometry_reconstructor: "HillasReconstructor"
   gammaness_classifier: "RandomForestClassifier"
 
   DL2EventQualityQuery:
     quality_criteria:
-      - ["multiplicity > 1", "np.count_nonzero(disp_telescopes,axis=1) >= 2"]
       - ["valid classifier", "RandomForestClassifier_is_valid"]
-      - ["valid geom reco", "disp_is_valid"]
+      - ["valid geom reco", "HillasReconstructor_is_valid"]
       - ["valid energy reco", "RandomForestRegressor_is_valid"]
 
 DefaultRecoEnergyBins:
@@ -46,7 +45,7 @@ PointSourceSensitivityOptimizer:
   min_background_fov_offset: 0.0 deg
   max_background_fov_offset: 5.0 deg
   max_gh_cut_efficiency: 0.8
-  gh_cut_efficiency_step: 0.05
+  gh_cut_efficiency_step: 0.1
   alpha: 0.2
   theta_min_angle: null
   theta_max_angle: 0.5 deg

@@ -1,0 +1,15 @@
+restart-times: 0
+max-jobs-per-second: 10
+max-status-checks-per-second: 1
+local-cores: 40
+latency-wait: 1
+jobs: 40
+# keep-going: True
+rerun-incomplete: True
+printshellcmds: True
+show-failed-logs: True
+scheduler: greedy
+use-conda: True
+conda-prefix: /scratch/lbeiske/snakemake_conda_envs/
+resources:
+  mem_mb: 100000

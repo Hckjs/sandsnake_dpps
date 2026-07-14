@@ -18,9 +18,9 @@ SoftwareTrigger:
 
 DataWriter:
   Contact:
-    name: Jonas Hackfeld
-    email: Jonas.Hackfeld@ruhr-uni-bochum.de
-    organization: RUB/TU-Dortmund
+    name: Lukas Beiske
+    email: lukas.beiske@tu-dortmund.de
+    organization: TU Dortmund University
 
   Instrument:
     site: CTAO-North

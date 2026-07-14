@@ -1,6 +1,6 @@
-PROFILE ?= ./sandsnake_dpps/profiles/local
+PROFILE ?= ./sandsnake_dpps/profiles/vollmond
 CONFIG ?= ./examples/core_analysis_config.yaml
-BUILD_DIR ?= build
+BUILD_DIR ?= /cephfs/users/lbeiske/build_sandsnake_dpps
 
 
 SNAKEFILE = --snakefile sandsnake_dpps/workflow/Snakefile

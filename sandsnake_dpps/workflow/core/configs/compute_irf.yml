@@ -23,14 +23,13 @@ IrfTool:
 
 DL2EventPreprocessor:
   energy_reconstructor: "RandomForestRegressor"
-  geometry_reconstructor: "disp"
+  geometry_reconstructor: "HillasReconstructor"
   gammaness_classifier: "RandomForestClassifier"
 
   DL2EventQualityQuery:
     quality_criteria:
-      - ["multiplicity > 1", "np.count_nonzero(disp_telescopes,axis=1) >= 2"]
       - ["valid classifier", "RandomForestClassifier_is_valid"]
-      - ["valid geom reco", "disp_is_valid"]
+      - ["valid geom reco", "HillasReconstructor_is_valid"]
       - ["valid energy reco", "RandomForestRegressor_is_valid"]
 
 # Using the following three components, default values for the reconstruced/true energy
