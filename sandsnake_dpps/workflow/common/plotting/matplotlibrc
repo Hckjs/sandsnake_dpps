@@ -9,4 +9,5 @@ axes.prop_cycle: cycler("color", ["00004A", "00E4D8", "F5F5F5", "00009C", "007AF
 # black: #000000
 
 grid.linestyle: :
+grid.linewidth: 0.6
 grid.alpha: 0.4
