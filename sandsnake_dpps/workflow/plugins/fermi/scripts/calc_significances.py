@@ -28,7 +28,7 @@ from regions import PointSkyRegion
 from scipy.optimize import curve_fit
 
 from core.scripts.mc.irf_plots import add_sensitivity_comparisons
-from core.scripts.colors import CTAO_COLORS
+from common.plotting.colors import CTAO_COLORS
 from plugins.fermi.scripts.process_catalog import VisibilityConfig, get_B_direction
 from plugins.fermi.scripts.catalog_priors import RedshiftSource, SourceOrigin
 from enum import StrEnum
@@ -1171,7 +1171,6 @@ class SourceAnalysis:
         )
         ax.grid(which="both", linestyle=":")
         ax.legend(loc="upper right", fontsize="x-small")
-        fig.tight_layout()
 
         if out_path is not None:
             fig.savefig(out_path)

@@ -253,7 +253,6 @@ def hist_alt(
         ax.set_ylabel("Obstime / h")
         ax.set_title("Altitude distribution during astronomical night")
         ax.grid(True)
-        fig.tight_layout()
 
     return HistogramSummary(
         fig=fig,
@@ -310,7 +309,6 @@ def hist_delta_B(
         ax.set_ylabel("Observable time / h")
         ax.set_title(r"Distribution of $\Delta B$ angles")
         ax.grid(True)
-        fig.tight_layout()
 
     return HistogramSummary(
         fig=fig,

@@ -38,9 +38,6 @@ def main(
         del gammas
         del nans_gammas
 
-    fig_dir_reco.tight_layout()
-    fig_e_reco.tight_layout()
-
     with TableLoader(input_protons) as loader_protons:
         protons = loader_protons.read_subarray_events(
             start=None,
@@ -65,8 +62,6 @@ def main(
         ax_gh,
     )
 
-    fig_gh.tight_layout()
-
     figs_imp = dl2_plots.plot_models_feature_importances(
         e_reg_model,
         disp_model,
@@ -74,7 +69,6 @@ def main(
         config_path,
     )
     # dl2_plots.plot_features(gammas, protons, ax_feat)
-    # fig_feat.tight_layout()
 
     with PdfPages(output) as pdf:
         pdf.savefig(fig_gh)

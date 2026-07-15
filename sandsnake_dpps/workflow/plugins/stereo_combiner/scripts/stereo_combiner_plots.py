@@ -10,7 +10,7 @@ from gammapy.irf import EffectiveAreaTable2D
 
 from ctapipe.reco.preprocessing import horizontal_to_telescope
 from core.scripts.mc.irf_plots import add_sensitivity_comparisons
-from core.scripts.colors import CTAO_CMAP
+from common.plotting.colors import CTAO_CMAP
 
 
 e_lim = [5.0e-3, 5.0e2]
@@ -64,7 +64,6 @@ def plot_theta2(theta_hist_dict):
     ax_theta2.set_ylabel("# of events")
     ax_theta2.legend()
     ax_theta2.set_yscale("log")
-    fig_theta2.tight_layout()
 
     return fig_theta2
 
@@ -126,8 +125,6 @@ def plot_lon_lat(lon_lat_hist_dict, extent):
     for ax in axes[n_combiner:]:
         ax.set_visible(False)
 
-    fig.tight_layout()
-
     return fig
 
 
@@ -150,7 +147,6 @@ def plot_a_eff(irfs_dict):
     ax.set_ylabel(r"Effective Area / $m^{2}$")
     ax.set_xlabel(r"$E_{True}$ / TeV")
 
-    fig.tight_layout()
     return fig
 
 
@@ -177,7 +173,6 @@ def plot_angular_resolution(benchmarks_dict):
     ax.grid(which="both", linestyle=":")
     ax.legend()
 
-    fig.tight_layout()
     return fig
 
 
@@ -204,7 +199,6 @@ def plot_energy_resolution(benchmarks_dict):
     ax.grid(which="both", linestyle=":")
     ax.legend()
 
-    fig.tight_layout()
     return fig
 
 
@@ -234,5 +228,4 @@ def plot_sensitivity(benchmarks_dict):
     ax.grid(which="both", linestyle=":")
     ax.legend(loc="upper right", fontsize="small")
 
-    fig.tight_layout()
     return fig

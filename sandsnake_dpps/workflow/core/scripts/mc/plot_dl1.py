@@ -300,17 +300,6 @@ def main(input_path, output):
         ax_cd[1, 1],
     )
 
-    fig_hist_1.tight_layout()
-    fig_hist_2.tight_layout()
-    fig_hist_3.tight_layout()
-    fig_cd.tight_layout()
-    fig_e_dep_1.tight_layout()
-    fig_e_dep_2.tight_layout()
-    fig_e_dep_3.tight_layout()
-    fig_e_dep_4.tight_layout()
-    fig_true_1.tight_layout()
-    fig_true_2.tight_layout()
-
     with PdfPages(output) as pdf:
         pdf.savefig(fig_hist_1)
         pdf.savefig(fig_hist_2)
