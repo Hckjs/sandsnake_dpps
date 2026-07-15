@@ -253,7 +253,6 @@ def hist_alt(
         ax.set_ylabel("Obstime / h")
         ax.set_title("Altitude distribution during astronomical night")
         ax.grid(True)
-        fig.tight_layout()
 
     return HistogramSummary(
         fig=fig,
@@ -310,7 +309,6 @@ def hist_delta_B(
         ax.set_ylabel("Observable time / h")
         ax.set_title(r"Distribution of $\Delta B$ angles")
         ax.grid(True)
-        fig.tight_layout()
 
     return HistogramSummary(
         fig=fig,
@@ -708,40 +706,44 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-if __name__ == "__main__":
-    smk = globals().get("snakemake")
+def main_from_snakemake(snakemake) -> None:
+    main(
+        catalog=snakemake.wildcards.catalog,
+        fgl_path=snakemake.input.fgl,
+        lac_path=snakemake.input.lac,
+        fhl_path=snakemake.input.fhl,
+        outdir=snakemake.params.outdir,
+        start=snakemake.params.start,
+        end=snakemake.params.end,
+        step_minutes=snakemake.params.step_minutes,
+        alt_min=snakemake.params.alt_min,
+        write_plots=snakemake.params.write_plots,
+        lower_quantile=snakemake.params.redshift_lower_quantile,
+        upper_quantile=snakemake.params.redshift_upper_quantile,
+        min_sources_per_group=snakemake.params.redshift_min_sources_per_group,
+    )
 
-    if smk is not None:
-        main(
-            catalog=smk.wildcards.catalog,
-            fgl_path=smk.input.fgl,
-            lac_path=smk.input.lac,
-            fhl_path=smk.input.fhl,
-            outdir=smk.params.outdir,
-            start=smk.params.start,
-            end=smk.params.end,
-            step_minutes=smk.params.step_minutes,
-            alt_min=smk.params.alt_min,
-            write_plots=smk.params.write_plots,
-            lower_quantile=smk.params.redshift_lower_quantile,
-            upper_quantile=smk.params.redshift_upper_quantile,
-            min_sources_per_group=smk.params.redshift_min_sources_per_group,
-        )
 
-    else:
-        args = parse_args()
-        main(
-            catalog=args.catalog,
-            fgl_path=args.fgl,
-            lac_path=args.lac,
-            fhl_path=args.fhl,
-            outdir=args.outdir,
-            start=args.start,
-            end=args.end,
-            step_minutes=args.step_minutes,
-            alt_min=args.alt_min,
-            write_plots=args.write_plots,
-            lower_quantile=args.redshift_lower_quantile,
-            upper_quantile=args.redshift_upper_quantile,
-            min_sources_per_group=args.redshift_min_sources_per_group,
-        )
+def main_from_args(args: argparse.Namespace) -> None:
+    main(
+        catalog=args.catalog,
+        fgl_path=args.fgl,
+        lac_path=args.lac,
+        fhl_path=args.fhl,
+        outdir=args.outdir,
+        start=args.start,
+        end=args.end,
+        step_minutes=args.step_minutes,
+        alt_min=args.alt_min,
+        write_plots=args.write_plots,
+        lower_quantile=args.redshift_lower_quantile,
+        upper_quantile=args.redshift_upper_quantile,
+        min_sources_per_group=args.redshift_min_sources_per_group,
+    )
+
+
+if "snakemake" in globals():
+    main_from_snakemake(snakemake)  # noqa: F821
+elif __name__ == "__main__":
+    args = parse_args()
+    main_from_args(args)

@@ -1,0 +1,13 @@
+figure.constrained_layout.use: True
+
+axes.prop_cycle: cycler("color", ["00004A", "00E4D8", "F5F5F5", "00009C", "007AFF", "000000"])
+# cherenkov_blue: #00004A
+# cherenkov_cyan: #00E4D8
+# light_gray: #F5F5F5
+# interstellar_indigo: #00009C
+# cosmic_azure: #007AFF
+# black: #000000
+
+grid.linestyle: :
+grid.linewidth: 0.6
+grid.alpha: 0.4

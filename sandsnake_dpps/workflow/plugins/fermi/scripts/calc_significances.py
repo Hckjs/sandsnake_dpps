@@ -28,7 +28,7 @@ from regions import PointSkyRegion
 from scipy.optimize import curve_fit
 
 from core.scripts.mc.irf_plots import add_sensitivity_comparisons
-from core.scripts.colors import CTAO_COLORS
+from common.plotting.colors import CTAO_COLORS
 from plugins.fermi.scripts.process_catalog import VisibilityConfig, get_B_direction
 from plugins.fermi.scripts.catalog_priors import RedshiftSource, SourceOrigin
 from enum import StrEnum
@@ -1171,7 +1171,6 @@ class SourceAnalysis:
         )
         ax.grid(which="both", linestyle=":")
         ax.legend(loc="upper right", fontsize="x-small")
-        fig.tight_layout()
 
         if out_path is not None:
             fig.savefig(out_path)
@@ -1292,30 +1291,39 @@ def main(
     analysis.write(outpath)
 
 
-if __name__ == "__main__":
-    smk = globals().get("snakemake")
-    if smk is not None:
-        main(
-            smk.input.source,
-            smk.output[0],
-            smk.input.irfs,
-            smk.input.benchmarks,
-        )
-    else:
-        import argparse
+def parse_args():
+    import argparse
 
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--source", required=True)
-        parser.add_argument("--output", required=True)
-        parser.add_argument("--irfs", nargs="+", required=True)
-        parser.add_argument("--benchmarks", nargs="+", required=True)
-        parser.add_argument("--sigma-target", type=float, default=5.0)
-        args = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--irfs", nargs="+", required=True)
+    parser.add_argument("--benchmarks", nargs="+", required=True)
+    parser.add_argument("--sigma-target", type=float, default=5.0)
+    return parser.parse_args()
 
-        main(
-            args.source,
-            args.output,
-            args.irfs,
-            args.benchmarks,
-            sigma_target=args.sigma_target,
-        )
+
+def main_from_snakemake(snakemake):
+    main(
+        snakemake.input.source,
+        snakemake.output[0],
+        snakemake.input.irfs,
+        snakemake.input.benchmarks,
+    )
+
+
+def main_from_args(args):
+    main(
+        args.source,
+        args.output,
+        args.irfs,
+        args.benchmarks,
+        sigma_target=args.sigma_target,
+    )
+
+
+if "snakemake" in globals():
+    main_from_snakemake(snakemake)  # noqa: F821
+elif __name__ == "__main__":
+    args = parse_args()
+    main_from_args(args)

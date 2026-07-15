@@ -86,12 +86,5 @@ rule plot_irfs:
         log_path(OUTPATHS["plot_irfs"], ".benchmark")
     resources:
         mem_mb=2000,
-    shell:
-        """
-        PYTHONPATH={WORKFLOW_DIR} \
-        python -m core.scripts.mc.plot_irfs \
-        --irfs-file {input.irfs} \
-        --cuts-file {input.cuts} \
-        --benchmark-file {input.benchmarks} \
-        -o {output} \
-        """
+    script:
+        CORE_SCRIPTS_DIR / "mc/plot_irfs.py"

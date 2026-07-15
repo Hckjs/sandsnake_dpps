@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ctapipe.irf.spectra import Spectra, SPECTRA, ENERGY_FLUX_UNIT
 from gammapy.irf import EnergyDispersion2D, EffectiveAreaTable2D, Background2D
-from core.scripts.colors import CTAO_COLORS, CTAO_CMAP_R
+from common.plotting.colors import CTAO_COLORS, CTAO_CMAP_R
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 
@@ -74,7 +74,6 @@ def plot_a_eff(irfs_path):
     ax.set_xlabel(r"$E_{True}$ / TeV")
     ax.legend().remove()
 
-    fig.tight_layout()
     return fig
 
 
@@ -102,14 +101,12 @@ def plot_energy(irfs_path, benchmarks_path):
     ax_res.set_xlabel(r"$E_{True}$ / TeV")
     ax_res.set_ylabel("Energy Resolution")
     ax_res.grid(which="both", linestyle=":")
-    fig_res.tight_layout()
 
     # Energy Bias
     edisp_table.plot_bias(ax=ax_bias, offset=offset, add_cbar=True, cmap=CTAO_CMAP_R)
     ax_bias.set_title("Energy Bias")
     ax_bias.set_xlabel(r"$E_{True}$ / TeV")
     ax_bias.set_ylabel(r"$E_{Reco}/E_{True}$")
-    fig_bias.tight_layout()
 
     # Energy Migration Matrix
     x = np.linspace(0, 1000, 10)
@@ -123,7 +120,6 @@ def plot_energy(irfs_path, benchmarks_path):
     ax_mat.set_title("Energy Migration Matrix")
     ax_mat.set_xlabel(r"$E_{True}$ / TeV")
     ax_mat.set_ylabel(r"$E_{Reco}$ / TeV")
-    fig_mat.tight_layout()
 
     figs.append(fig_res)
     figs.append(fig_mat)
@@ -152,7 +148,6 @@ def plot_angular_resolution(benchmarks_path):
     ax.set_ylabel("68% Containment Angular Resolution / deg")
     ax.grid(which="both", linestyle=":")
 
-    fig.tight_layout()
     return fig
 
 
@@ -195,7 +190,6 @@ def plots_cuts_distribution(cuts_path):
     ax_cuts[1].set_xlabel(r"$E_{True}$ / TeV")
     ax_cuts[1].grid(which="both", linestyle=":")
 
-    fig_cuts.tight_layout()
     return fig_cuts
 
 
@@ -219,7 +213,6 @@ def plot_background_rate_energy(irfs_path, offset=0.0 * u.deg):
     ax.set_ylabel(f"Background rate / {bkg_table.unit}")
     ax.grid(which="both", linestyle=":")
 
-    fig.tight_layout()
     return fig
 
 
@@ -246,7 +239,6 @@ def plot_sensitivity(benchmarks_path):
     ax.grid(which="both", linestyle=":")
     ax.legend(loc="upper right", fontsize="small")
 
-    fig.tight_layout()
     return fig
 
 

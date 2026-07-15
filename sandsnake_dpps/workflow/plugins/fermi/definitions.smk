@@ -31,6 +31,11 @@ GAMMAPY_DATA_DIR = Path(config.get("gammapy_data_dir") or DEFAULT_GAMMAPY_DATA_D
 require_loaded_gammapy_data(GAMMAPY_DATA_DIR)
 os.environ["GAMMAPY_DATA"] = str(GAMMAPY_DATA_DIR)
 
+
+envvars:
+    "GAMMAPY_DATA",
+
+
 FERMI_CATALOGS = {
     "FGL": FERMI_CATALOGS_IN_DIR / "4FGL_DR4.fit",
     "FHL": FERMI_CATALOGS_IN_DIR / "3FHL.fit",

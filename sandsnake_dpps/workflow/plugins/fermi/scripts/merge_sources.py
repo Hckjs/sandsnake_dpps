@@ -82,19 +82,24 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-if __name__ == "__main__":
-    smk = globals().get("snakemake")
+def main_from_snakemake(snakemake) -> None:
+    main(
+        output_file=snakemake.output[0],
+        fgl_sources=snakemake.input.fgl_sources,
+        fhl_sources=snakemake.input.fhl_sources,
+    )
 
-    if smk is not None:
-        main(
-            output_file=smk.output[0],
-            fgl_sources=smk.input.fgl_sources,
-            fhl_sources=smk.input.fhl_sources,
-        )
-    else:
-        args = parse_args()
-        main(
-            output_file=args.output,
-            fgl_sources=args.fgl_sources,
-            fhl_sources=args.fhl_sources,
-        )
+
+def main_from_args(args: argparse.Namespace) -> None:
+    main(
+        output_file=args.output,
+        fgl_sources=args.fgl_sources,
+        fhl_sources=args.fhl_sources,
+    )
+
+
+if "snakemake" in globals():
+    main_from_snakemake(snakemake)  # noqa: F821
+elif __name__ == "__main__":
+    args = parse_args()
+    main_from_args(args)

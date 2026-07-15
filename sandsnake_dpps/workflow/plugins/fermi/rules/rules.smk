@@ -1,7 +1,3 @@
-envvars:
-    "PYTHONPATH",
-    "GAMMAPY_DATA",
-
 
 ruleorder: select_subarrays > stage_mc_dl1_merged
 
