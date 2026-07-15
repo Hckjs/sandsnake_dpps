@@ -1,5 +1,5 @@
-run_tag: "full_array"
-user_config_dir: null
+run_tag: "5_fov_bins"
+user_config_dir: ./examples/lukas_thesis/configs
 user_env_dir: null
 
 targets:
@@ -11,7 +11,6 @@ targets:
   rf_particle_classifier: false
   rf_geometry_reconstructor: false
   rf_performance_plots: false
-  cuts: true
   irfs: true
   irfs_plots: true
 
@@ -21,14 +20,14 @@ inputs:
   mc_dl1_merged: null
   mc_dl2: /cephfs/users/lbeiske/build_sandsnake_dpps/full_array/mc/dl2/ # Only if all three properties are reconstructed!
   models: null
+  irfs: null
+  benchmarks: null
   cuts: null
-  irfs: null        # Both IRFs, cuts, and
-  benchmarks: null  # benchmarks can be plotted using the "irfs_plots" target
 
 # Gamma MC sample for both cut optimization and IRF computation.
 # "gamma" selects point-like MC; "gamma_diffuse" selects diffuse MC.
 irfs:
-  gamma_particle: gamma
+  gamma_particle: gamma_diffuse
 
 # [zen, az]
 pointings:
@@ -41,7 +40,7 @@ obstimes:
   - 0.5
 
 # RF training split
-train_size: 0.5
-cuts_size: 0.5
+train_size: 0.25
+cuts_size: 0.25
 
 plugins: null #["fermi"]
