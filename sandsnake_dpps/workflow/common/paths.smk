@@ -17,8 +17,13 @@ USER_ENVS_DIR = config.get("user_env_dir", None)
 
 RUN_TAG = config.get("run_tag", "default")
 
+existing_pythonpath = os.environ.get("PYTHONPATH")
+os.environ["PYTHONPATH"] = (
+    f"{WORKFLOW_DIR}{os.pathsep}{existing_pythonpath}"
+    if existing_pythonpath
+    else str(WORKFLOW_DIR)
+)
 MATPLOTLIBRC_PATH = WORKFLOW_DIR / "common/matplotlibrc"
-os.environ["PYTHONPATH"] = str(WORKFLOW_DIR)
 os.environ["MATPLOTLIBRC"] = str(MATPLOTLIBRC_PATH)
 
 
