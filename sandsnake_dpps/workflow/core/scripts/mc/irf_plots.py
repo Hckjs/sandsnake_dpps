@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ctapipe.irf.spectra import Spectra, SPECTRA, ENERGY_FLUX_UNIT
 from gammapy.irf import EnergyDispersion2D, EffectiveAreaTable2D, Background2D
-from core.scripts.colors import CTAO_COLORS, CTAO_CMAP_R
+from common.plotting.colors import CTAO_COLORS, CTAO_CMAP_R
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 

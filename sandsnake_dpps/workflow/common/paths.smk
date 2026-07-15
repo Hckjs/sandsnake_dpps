@@ -23,7 +23,7 @@ os.environ["PYTHONPATH"] = (
     if existing_pythonpath
     else str(WORKFLOW_DIR)
 )
-MATPLOTLIBRC_PATH = WORKFLOW_DIR / "common/matplotlibrc"
+MATPLOTLIBRC_PATH = WORKFLOW_DIR / "common/plotting/matplotlibrc"
 os.environ["MATPLOTLIBRC"] = str(MATPLOTLIBRC_PATH)
 
 
