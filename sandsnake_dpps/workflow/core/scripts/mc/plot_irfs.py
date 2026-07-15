@@ -8,6 +8,7 @@ from core.scripts.mc.irf_plots import (
     plot_sensitivity,
     plot_a_eff,
     plot_background_rate_energy,
+    plot_psf_radius,
 )
 
 if matplotlib.get_backend() == "pgf":
@@ -19,18 +20,20 @@ else:
 def main(irfs_file, cuts_file, benchmark_file, output):
     fig_sens = plot_sensitivity(benchmark_file)
     fig_a_eff = plot_a_eff(irfs_file)
-    fig_ang_res = plot_angular_resolution(benchmark_file)
+    figs_ang_res = plot_angular_resolution(benchmark_file)
     figs_energy = plot_energy(irfs_file, benchmark_file)
-    fig_cuts = plots_cuts_distribution(cuts_file)
+    figs_cuts = plots_cuts_distribution(cuts_file)
     fig_bkg = plot_background_rate_energy(irfs_file)
+    fig_psf = plot_psf_radius(irfs_file)
 
     with PdfPages(output) as pdf:
         pdf.savefig(fig_sens)
-        pdf.savefig(fig_a_eff)
-        pdf.savefig(fig_ang_res)
-        for fig in figs_energy:
+        for fig in figs_ang_res:
             pdf.savefig(fig)
-        pdf.savefig(fig_cuts)
+        pdf.savefig(fig_a_eff)
+        pdf.savefig(fig_psf)
+        for fig in figs_energy + figs_cuts:
+            pdf.savefig(fig)
         pdf.savefig(fig_bkg)
 
 
