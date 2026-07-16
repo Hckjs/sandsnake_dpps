@@ -1,5 +1,5 @@
 PROFILE ?= ./sandsnake_dpps/profiles/vollmond
-CONFIG ?= ./examples/core_analysis_config.yaml
+CONFIG ?= ./examples/lukas_thesis/configs/core_analysis_config.yaml
 BUILD_DIR ?= /cephfs/users/lbeiske/build_sandsnake_dpps
 
 
