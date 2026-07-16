@@ -164,34 +164,39 @@ def mc_dl1_split_provider(wc):
     train_files = split_files[: int(num_files * train_size)]
     test_files = split_files[int(num_files * train_size) :]
 
-    # TODO: Make a check that splits are not empty
+    def non_empty(files):
+        if not files:
+            raise ValueError(
+                f"MC DL1 split '{split}' for particle '{particle}' is empty."
+            )
+        return files
 
     if particle == "gamma_diffuse":
         if split == "train_en":
-            return train_files[: int(len(train_files) * 0.4)]
+            return non_empty(train_files[: int(len(train_files) * 0.4)])
         if split == "train_cl_disp":
-            return train_files[int(len(train_files) * 0.4) :]
+            return non_empty(train_files[int(len(train_files) * 0.4) :])
         if split == "test_cuts":
-            return test_files[: int(len(test_files) * cuts_size)]
+            return non_empty(test_files[: int(len(test_files) * cuts_size)])
         if split == "test_irfs":
-            return test_files[int(len(test_files) * cuts_size) :]
+            return non_empty(test_files[int(len(test_files) * cuts_size) :])
 
     if particle == "proton":
         if split == "train_cl_disp":
-            return train_files
+            return non_empty(train_files)
         if split == "test_cuts":
-            return test_files[: int(len(test_files) * cuts_size)]
+            return non_empty(test_files[: int(len(test_files) * cuts_size)])
         if split == "test_irfs":
-            return test_files[int(len(test_files) * cuts_size) :]
+            return non_empty(test_files[int(len(test_files) * cuts_size) :])
 
     if particle == "gamma":
         if split == "test_cuts":
-            return split_files[: int(num_files * cuts_size)]
+            return non_empty(split_files[: int(num_files * cuts_size)])
         if split == "test_irfs":
-            return split_files[int(num_files * cuts_size) :]
+            return non_empty(split_files[int(num_files * cuts_size) :])
 
     if particle == "electron":
         if split == "test_cuts":
-            return split_files[: int(num_files * cuts_size)]
+            return non_empty(split_files[: int(num_files * cuts_size)])
         if split == "test_irfs":
-            return split_files[int(num_files * cuts_size) :]
+            return non_empty(split_files[int(num_files * cuts_size) :])
