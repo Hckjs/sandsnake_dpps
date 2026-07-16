@@ -105,6 +105,24 @@ def rf_geometry_reconstructor_provider(wc):
 # ------------------------------------------------------------------
 
 
+def irfs_gamma_particle() -> str:
+    """Return the configured gamma MC sample for cut optimization and IRFs."""
+    irfs_config = config.get("irfs", {})
+    if not isinstance(irfs_config, dict):
+        raise ValueError("config['irfs'] must be a mapping when configured")
+
+    gamma_particle = irfs_config.get("gamma_particle", "gamma")
+    valid_particles = {"gamma", "gamma_diffuse"}
+    if not isinstance(gamma_particle, str) or gamma_particle not in valid_particles:
+        valid_values = ", ".join(sorted(valid_particles))
+        raise ValueError(
+            "config['irfs']['gamma_particle'] must be one of "
+            f"{valid_values}; got {gamma_particle!r}"
+        )
+
+    return gamma_particle
+
+
 def irfs_provider(wc):
     base = _select_input("irfs")
     return TARGETS_IRFS(base, resolve=False)

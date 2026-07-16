@@ -24,6 +24,11 @@ inputs:
   benchmarks: null
   cuts: null
 
+# Gamma MC sample for both cut optimization and IRF computation.
+# "gamma" selects point-like MC; "gamma_diffuse" selects diffuse MC.
+irfs:
+  gamma_particle: gamma
+
 # [zen, az]
 pointings:
   - [20, 180]
