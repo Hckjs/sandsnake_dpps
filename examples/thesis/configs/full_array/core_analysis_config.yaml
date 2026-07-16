@@ -24,6 +24,9 @@ inputs:
   benchmarks: null
   cuts: null
 
+irfs:
+  gamma_particle: gamma
+
 # [zen, az]
 pointings:
   - [20, 180]
