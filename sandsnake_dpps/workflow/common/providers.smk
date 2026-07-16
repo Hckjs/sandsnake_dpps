@@ -173,9 +173,9 @@ def mc_dl1_split_provider(wc):
 
     if particle == "gamma_diffuse":
         if split == "train_en":
-            return non_empty(train_files[: int(len(train_files) * 0.4)])
+            return non_empty(train_files[: int(len(train_files) * 0.5)])
         if split == "train_cl_disp":
-            return non_empty(train_files[int(len(train_files) * 0.4) :])
+            return non_empty(train_files[int(len(train_files) * 0.5) :])
         if split == "test_cuts":
             return non_empty(test_files[: int(len(test_files) * cuts_size)])
         if split == "test_irfs":

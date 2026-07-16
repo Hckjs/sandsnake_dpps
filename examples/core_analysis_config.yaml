@@ -40,7 +40,7 @@ obstimes:
   - 0.5
 
 # RF training split
-train_size: 0.6
+train_size: 0.5
 cuts_size: 0.5
 
 plugins: null #["fermi"]
