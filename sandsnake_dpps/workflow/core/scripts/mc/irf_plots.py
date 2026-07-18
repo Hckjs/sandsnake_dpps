@@ -202,6 +202,7 @@ def plot_angular_resolution(benchmarks_path):
     fig_comp, ax_comp = plt.subplots()
 
     fov_centers = (0.5 * (ang_res["THETA_LO"] + ang_res["THETA_HI"])).flatten()
+    e_type = ang_res["E_TYPE"]
     e_lim = [
         ang_res["ENERG_LO"][0][0].to_value(u.TeV),
         ang_res["ENERG_HI"][0][-1].to_value(u.TeV),
@@ -232,7 +233,7 @@ def plot_angular_resolution(benchmarks_path):
     ax_comp.set_ylim(0, 0.3)
     ax_comp.set_xscale("log")
     ax_comp.set_title(f"Angular Resolution at Offset = {fov_centers[0]:.1f}")
-    ax_comp.set_xlabel(r"$E_{True}$ / TeV")
+    ax_comp.set_xlabel(rf"$E_{{{e_type}}}$ / TeV")
     ax_comp.set_ylabel(r"Angular Resolution / $^{\circ}$")
     ax_comp.grid(which="both")
     ax_comp.legend()
@@ -252,7 +253,7 @@ def plot_angular_resolution(benchmarks_path):
     ax_fov.set_xlim(e_lim)
     ax_fov.set_xscale("log")
     ax_fov.set_title("Angular Resolution")
-    ax_fov.set_xlabel(r"$E_{True}$ / TeV")
+    ax_fov.set_xlabel(rf"$E_{{{e_type}}}$ / TeV")
     ax_fov.set_ylabel(r"68% Angular Resolution / $^{\circ}$")
     ax_fov.grid(which="both")
     ax_fov.legend()
@@ -272,7 +273,7 @@ def plot_angular_resolution(benchmarks_path):
     ax.set_xlim(e_lim)
     ax.set_xscale("log")
     ax.set_title(f"Angular Resolution at Offset = {fov_centers[0]:.1f}")
-    ax.set_xlabel(r"$E_{True}$ / TeV")
+    ax.set_xlabel(rf"$E_{{{e_type}}}$ / TeV")
     ax.set_ylabel(r"Angular Resolution / $^{\circ}$")
     ax.grid(which="both")
     ax.legend()
@@ -303,7 +304,7 @@ def plot_sensitivity(benchmarks_path):
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_title(f"Sensitivity at Offset = {fov_centers[0]:.1f}")
-    ax.set_xlabel(r"$E_{True}$ / TeV")
+    ax.set_xlabel(r"$E_{Reco}$ / TeV")
     ax.set_ylabel(r"$E^{2} \times$ Flux Sensitivity / $erg \cdot cm^{-2} \cdot s^{-1}$")
     ax.grid(which="both")
     ax.legend(loc="upper right", fontsize="small")
@@ -325,7 +326,7 @@ def plot_sensitivity(benchmarks_path):
     ax_fov.set_xscale("log")
     ax_fov.set_yscale("log")
     ax_fov.set_title("Sensitivity")
-    ax_fov.set_xlabel(r"$E_{True}$ / TeV")
+    ax_fov.set_xlabel(r"$E_{Reco}$ / TeV")
     ax_fov.set_ylabel(
         r"$E^{2} \times$ Flux Sensitivity / $erg \cdot cm^{-2} \cdot s^{-1}$"
     )
