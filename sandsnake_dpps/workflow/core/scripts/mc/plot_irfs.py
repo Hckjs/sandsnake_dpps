@@ -18,7 +18,7 @@ else:
 
 
 def main(irfs_file, cuts_file, benchmark_file, output):
-    fig_sens = plot_sensitivity(benchmark_file)
+    figs_sens = plot_sensitivity(benchmark_file)
     fig_a_eff = plot_a_eff(irfs_file)
     figs_ang_res = plot_angular_resolution(benchmark_file)
     figs_energy = plot_energy(irfs_file, benchmark_file)
@@ -27,8 +27,7 @@ def main(irfs_file, cuts_file, benchmark_file, output):
     fig_psf = plot_psf_radius(irfs_file)
 
     with PdfPages(output) as pdf:
-        pdf.savefig(fig_sens)
-        for fig in figs_ang_res:
+        for fig in figs_sens + figs_ang_res:
             pdf.savefig(fig)
         pdf.savefig(fig_a_eff)
         pdf.savefig(fig_psf)

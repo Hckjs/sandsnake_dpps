@@ -12,10 +12,6 @@ from common.plotting.colors import CTAO_COLORS, CTAO_CMAP_R
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 
-OFFSET = 0.0 * u.deg  # TODO: Should not be hardcoded, just on-axis for now
-FOV_BIN = 0
-E_LIM = [5.0e-3, 5.0e2]
-
 
 def plots_cuts_distribution(cuts_path):
     figs = []
@@ -26,6 +22,8 @@ def plots_cuts_distribution(cuts_path):
     gh_cut = QTable.read(cuts_path, hdu="GH_CUTS")
     fig_gh, ax_gh = plt.subplots()
 
+    e_lim = [gh_cut["low"][0].to_value(u.TeV), gh_cut["high"][-1].to_value(u.TeV)]
+
     ax_gh.errorbar(
         gh_cut["center"],
         gh_cut["cut"],
@@ -33,7 +31,7 @@ def plots_cuts_distribution(cuts_path):
         ls="",
     )
 
-    ax_gh.set_xlim(E_LIM)
+    ax_gh.set_xlim(e_lim)
     ax_gh.set_xscale("log")
     ax_gh.set_title(r"$\gamma$/H Cuts")
     ax_gh.set_ylabel(r"$\gamma$/H Cut")
@@ -55,7 +53,7 @@ def plots_cuts_distribution(cuts_path):
             ),
             ls="",
         )
-        ax_theta.set_xlim(E_LIM)
+        ax_theta.set_xlim(e_lim)
         ax_theta.set_xscale("log")
         ax_theta.set_title(r"$\Theta$ Cuts")
         ax_theta.set_ylabel(r"$\Theta$ Cut")
@@ -77,7 +75,7 @@ def plots_cuts_distribution(cuts_path):
             ),
             ls="",
         )
-        ax_mult.set_xlim(E_LIM)
+        ax_mult.set_xlim(e_lim)
         ax_mult.set_xscale("log")
         ax_mult.set_title(r"Event Multiplicity Cuts")
         ax_mult.set_ylabel(r"$N_\mathrm{Multiplicity}$ Cut")
@@ -91,17 +89,20 @@ def plots_cuts_distribution(cuts_path):
 def plot_a_eff(irfs_path):
     fig, ax = plt.subplots()
     aeff_table = EffectiveAreaTable2D.read(irfs_path, hdu="EFFECTIVE AREA")
+
     aeff_table.plot_energy_dependence(
-        ax=ax,
-        offset=[OFFSET],
+        ax=ax, offset=aeff_table.axes["offset"].center, alpha=0.7
     )
+
     ax.set_yscale("log")
-    ax.set_xlim(E_LIM)
+    ax.set_xlim(
+        aeff_table.axes["energy_true"].edges[0],
+        aeff_table.axes["energy_true"].edges[-1],
+    )
     ax.grid(which="both")
-    ax.set_title(f"Effective Area at Offset = {OFFSET:.1f}")
+    ax.set_title("Effective Area")
     ax.set_ylabel("Effective Area / $m^{2}$")
     ax.set_xlabel(r"$E_{True}$ / TeV")
-    ax.legend().remove()
     return fig
 
 
@@ -115,36 +116,45 @@ def plot_energy(irfs_path, benchmarks_path):
     fig_mat, ax_mat = plt.subplots(1, 1)
 
     # Energy Resolution
-    ax_res.errorbar(
-        (0.5 * (e_resolution["ENERG_LO"] + e_resolution["ENERG_HI"])).flatten(),
-        e_resolution["RESOLUTION"][:, FOV_BIN, :].flatten(),
-        xerr=0.5 * (e_resolution["ENERG_HI"] - e_resolution["ENERG_LO"]),
-        ls="",
-    )
+    fov_centers = (
+        0.5 * (e_resolution["THETA_LO"] + e_resolution["THETA_HI"])
+    ).flatten()
+    for i, offset in enumerate(fov_centers):
+        ax_res.errorbar(
+            (0.5 * (e_resolution["ENERG_LO"] + e_resolution["ENERG_HI"])).flatten(),
+            e_resolution["RESOLUTION"][:, i, :].flatten(),
+            xerr=0.5 * (e_resolution["ENERG_HI"] - e_resolution["ENERG_LO"]),
+            ls="",
+            alpha=0.7,
+            label=f"offset = {offset}",
+        )
 
     ax_res.set_xscale("log")
-    ax_res.set_xlim(E_LIM)
+    ax_res.set_xlim(
+        e_resolution["ENERG_LO"][0][0].to_value(u.TeV),
+        e_resolution["ENERG_HI"][0][-1].to_value(u.TeV),
+    )
     ax_res.set_title("Energy Resolution")
     ax_res.set_xlabel(r"$E_{True}$ / TeV")
     ax_res.set_ylabel("Energy Resolution")
     ax_res.grid(which="both")
+    ax_res.legend()
 
     # Energy Bias
-    edisp_table.plot_bias(ax=ax_bias, offset=OFFSET, add_cbar=True, cmap=CTAO_CMAP_R)
-    ax_bias.set_title(f"Energy Bias at Offset = {OFFSET:.1f}")
+    edisp_table.plot_bias(
+        ax=ax_bias, offset=fov_centers[0], add_cbar=True, cmap=CTAO_CMAP_R
+    )
+    ax_bias.set_title(f"Energy Bias at Offset = {fov_centers[0]:.1f}")
     ax_bias.set_xlabel(r"$E_{True}$ / TeV")
     ax_bias.set_ylabel(r"$E_{Reco}/E_{True}$")
 
     # Energy Migration Matrix
     x = np.linspace(0, 1000, 10)
-    edisp_kernel = edisp_table.to_edisp_kernel(offset=OFFSET)
-    edisp_kernel.plot_matrix(
-        ax=ax_mat,
-        add_cbar=True,
-        cmap=CTAO_CMAP_R,
-    )
+    edisp_kernel = edisp_table.to_edisp_kernel(offset=fov_centers[0])
+    edisp_kernel.plot_matrix(ax=ax_mat, add_cbar=True, cmap=CTAO_CMAP_R)
+
     ax_mat.plot(x, x, color="black", linestyle="--")
-    ax_mat.set_title(f"Energy Migration Matrix at Offset = {OFFSET:.1f}")
+    ax_mat.set_title(f"Energy Migration Matrix at Offset = {fov_centers[0]:.1f}")
     ax_mat.set_xlabel(r"$E_{True}$ / TeV")
     ax_mat.set_ylabel(r"$E_{Reco}$ / TeV")
 
@@ -154,21 +164,18 @@ def plot_energy(irfs_path, benchmarks_path):
     return figs
 
 
-def plot_background_rate_energy(irfs_path, offset=OFFSET):
+def plot_background_rate_energy(irfs_path):
     """Plot background rate as function of reconstructed energy for one offset."""
-
     bkg_table = Background2D.read(irfs_path, hdu="BACKGROUND")
-
     fig, ax = plt.subplots()
 
     bkg_table.plot_energy_dependence(
-        ax=ax,
-        offset=[offset],
+        ax=ax, offset=bkg_table.axes["offset"].center, alpha=0.7
     )
 
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_title(f"Background Rate at Offset = {offset:.1f}")
+    ax.set_title("Background Rate")
     ax.set_xlabel(r"$E_\mathrm{Reco}$ / TeV")
     ax.set_ylabel(f"Background rate / {bkg_table.unit}")
     ax.grid(which="both")
@@ -177,14 +184,9 @@ def plot_background_rate_energy(irfs_path, offset=OFFSET):
 
 def plot_psf_radius(irfs_path):
     psf = PSF3D.read(irfs_path, hdu="PSF")
-
     fig, ax = plt.subplots()
 
-    psf.plot_containment_radius(
-        ax=ax,
-        add_cbar=True,
-        cmap=CTAO_CMAP_R,
-    )
+    psf.plot_containment_radius(ax=ax, add_cbar=True, cmap=CTAO_CMAP_R)
 
     ax.set_xscale("log")
     ax.set_title("PSF 68% Containment Radius")
@@ -199,9 +201,16 @@ def plot_angular_resolution(benchmarks_path):
     # Compare with requirements
     fig_comp, ax_comp = plt.subplots()
 
+    fov_centers = (0.5 * (ang_res["THETA_LO"] + ang_res["THETA_HI"])).flatten()
+    e_type = ang_res["E_TYPE"]
+    e_lim = [
+        ang_res["ENERG_LO"][0][0].to_value(u.TeV),
+        ang_res["ENERG_HI"][0][-1].to_value(u.TeV),
+    ]
+
     ax_comp.errorbar(
         (0.5 * (ang_res["ENERG_LO"] + ang_res["ENERG_HI"])).flatten(),
-        ang_res["ANGULAR_RESOLUTION_68"][:, FOV_BIN, :].flatten(),
+        ang_res["ANGULAR_RESOLUTION_68"][:, 0, :].flatten(),
         xerr=0.5 * (ang_res["ENERG_HI"] - ang_res["ENERG_LO"]),
         ls="",
         label="R68",
@@ -220,14 +229,34 @@ def plot_angular_resolution(benchmarks_path):
         alpha=0.8,
     )
 
-    ax_comp.set_xlim(E_LIM)
+    ax_comp.set_xlim(e_lim)
     ax_comp.set_ylim(0, 0.3)
     ax_comp.set_xscale("log")
-    ax_comp.set_title("Angular Resolution")
-    ax_comp.set_xlabel(r"$E_{True}$ / TeV")
+    ax_comp.set_title(f"Angular Resolution at Offset = {fov_centers[0]:.1f}")
+    ax_comp.set_xlabel(rf"$E_{{{e_type}}}$ / TeV")
     ax_comp.set_ylabel(r"Angular Resolution / $^{\circ}$")
     ax_comp.grid(which="both")
     ax_comp.legend()
+
+    # Plot R68 for all FoV bins
+    fig_fov, ax_fov = plt.subplots()
+    for i, offset in enumerate(fov_centers):
+        ax_fov.errorbar(
+            (0.5 * (ang_res["ENERG_LO"] + ang_res["ENERG_HI"])).flatten(),
+            ang_res["ANGULAR_RESOLUTION_68"][:, i, :].flatten(),
+            xerr=0.5 * (ang_res["ENERG_HI"] - ang_res["ENERG_LO"]),
+            ls="",
+            alpha=0.7,
+            label=f"offset = {offset}",
+        )
+
+    ax_fov.set_xlim(e_lim)
+    ax_fov.set_xscale("log")
+    ax_fov.set_title("Angular Resolution")
+    ax_fov.set_xlabel(rf"$E_{{{e_type}}}$ / TeV")
+    ax_fov.set_ylabel(r"68% Angular Resolution / $^{\circ}$")
+    ax_fov.grid(which="both")
+    ax_fov.legend()
 
     # Plot all quantiles present in file
     fig, ax = plt.subplots()
@@ -235,48 +264,78 @@ def plot_angular_resolution(benchmarks_path):
     for col in [c for c in ang_res.colnames if c.startswith("ANGULAR_RESOLUTION")]:
         ax.errorbar(
             (0.5 * (ang_res["ENERG_LO"] + ang_res["ENERG_HI"])).flatten(),
-            ang_res[col][:, FOV_BIN, :].flatten(),
+            ang_res[col][:, 0, :].flatten(),
             xerr=0.5 * (ang_res["ENERG_HI"] - ang_res["ENERG_LO"]),
             ls="",
             label=f"R{col[-2:]}",
         )
 
-    ax.set_xlim(E_LIM)
+    ax.set_xlim(e_lim)
     ax.set_xscale("log")
-    ax.set_title("Angular Resolution")
-    ax.set_xlabel(r"$E_{True}$ / TeV")
+    ax.set_title(f"Angular Resolution at Offset = {fov_centers[0]:.1f}")
+    ax.set_xlabel(rf"$E_{{{e_type}}}$ / TeV")
     ax.set_ylabel(r"Angular Resolution / $^{\circ}$")
     ax.grid(which="both")
     ax.legend()
-    return [fig_comp, fig]
+    return [fig_comp, fig_fov, fig]
 
 
 def plot_sensitivity(benchmarks_path):
     sens = QTable.read(benchmarks_path, hdu="SENSITIVITY")
     fig, ax = plt.subplots()
 
+    fov_centers = (0.5 * (sens["THETA_LO"] + sens["THETA_HI"])).flatten()
+    e_lim = [
+        sens["ENERG_LO"][0][0].to_value(u.TeV),
+        sens["ENERG_HI"][0][-1].to_value(u.TeV),
+    ]
+
     ax.errorbar(
         (0.5 * (sens["ENERG_LO"] + sens["ENERG_HI"])).flatten(),
-        sens["ENERGY_FLUX_SENSITIVITY"][:, FOV_BIN, :].flatten(),
+        sens["ENERGY_FLUX_SENSITIVITY"][:, 0, :].flatten(),
         xerr=0.5 * (sens["ENERG_HI"] - sens["ENERG_LO"]),
         ls="",
     )
 
-    add_sensitivity_comparisons(ax)
+    add_sensitivity_comparisons(ax, energy_limits=e_lim)
 
     ax.set_ylim(3.0e-14, 1.0e-9)
-    ax.set_xlim(E_LIM)
+    ax.set_xlim(e_lim)
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_title("Sensitivity")
-    ax.set_xlabel(r"$E_{True}$ / TeV")
+    ax.set_title(f"Sensitivity at Offset = {fov_centers[0]:.1f}")
+    ax.set_xlabel(r"$E_{Reco}$ / TeV")
     ax.set_ylabel(r"$E^{2} \times$ Flux Sensitivity / $erg \cdot cm^{-2} \cdot s^{-1}$")
     ax.grid(which="both")
     ax.legend(loc="upper right", fontsize="small")
-    return fig
+
+    # Plot sensitivity for all FoV bins
+    fig_fov, ax_fov = plt.subplots()
+
+    for i, offset in enumerate(fov_centers):
+        ax_fov.errorbar(
+            (0.5 * (sens["ENERG_LO"] + sens["ENERG_HI"])).flatten(),
+            sens["ENERGY_FLUX_SENSITIVITY"][:, i, :].flatten(),
+            xerr=0.5 * (sens["ENERG_HI"] - sens["ENERG_LO"]),
+            ls="",
+            alpha=0.7,
+            label=f"offset = {offset}",
+        )
+
+    ax_fov.set_xlim(e_lim)
+    ax_fov.set_xscale("log")
+    ax_fov.set_yscale("log")
+    ax_fov.set_title("Sensitivity")
+    ax_fov.set_xlabel(r"$E_{Reco}$ / TeV")
+    ax_fov.set_ylabel(
+        r"$E^{2} \times$ Flux Sensitivity / $erg \cdot cm^{-2} \cdot s^{-1}$"
+    )
+    ax_fov.grid(which="both")
+    ax_fov.legend()
+    return [fig, fig_fov]
 
 
-def add_sensitivity_comparisons(ax, energy_limits=E_LIM):
+def add_sensitivity_comparisons(ax, energy_limits):
     # Plot Crab SED
     plot_Crab_SED(
         energy_limits[0] * u.TeV,
