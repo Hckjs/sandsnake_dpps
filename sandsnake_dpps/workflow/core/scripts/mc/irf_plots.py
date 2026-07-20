@@ -197,12 +197,14 @@ def plot_psf_radius(irfs_path):
 
 
 def plot_angular_resolution(benchmarks_path):
+    with fits.open(benchmarks_path) as hdul:
+        e_type = hdul["ANGULAR RESOLUTION"].header["E_TYPE"]
+
     ang_res = QTable.read(benchmarks_path, hdu="ANGULAR RESOLUTION")
     # Compare with requirements
     fig_comp, ax_comp = plt.subplots()
 
     fov_centers = (0.5 * (ang_res["THETA_LO"] + ang_res["THETA_HI"])).flatten()
-    e_type = ang_res["E_TYPE"]
     e_lim = [
         ang_res["ENERG_LO"][0][0].to_value(u.TeV),
         ang_res["ENERG_HI"][0][-1].to_value(u.TeV),
