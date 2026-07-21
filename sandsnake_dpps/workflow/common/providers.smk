@@ -129,12 +129,12 @@ def irfs_provider(wc):
 
 
 def benchmarks_provider(wc):
-    base = _select_input("irfs")
+    base = _select_input("benchmarks")
     return TARGETS_BENCHMARKS(base, resolve=False)
 
 
 def cuts_provider(wc):
-    base = _select_input("irfs")
+    base = _select_input("cuts")
     return TARGETS_CUTS(base, resolve=False)
 
 
