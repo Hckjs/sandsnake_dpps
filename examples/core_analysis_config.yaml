@@ -10,8 +10,6 @@ targets:
   rf_energy_regressor: false
   rf_particle_classifier: false
   rf_geometry_reconstructor: false
-  rf_performance_plots: false
-  rf_performance_plots: false
   rf_performance_plots: true
   cuts: true
   irfs: true
