@@ -158,7 +158,7 @@ def mc_dl1_split_provider(wc):
     filenames = get_filenames(wc.zen, wc.az, particle)
 
     split_path = Path(base_dir + parent_dir)
-    split_files = [split_path / f"{fname}.dl1.h5" for fname in filenames]
+    split_files = [split_path / f"{fname}.DL1.h5" for fname in filenames]
 
     num_files = len(split_files)
     train_files = split_files[: int(num_files * train_size)]

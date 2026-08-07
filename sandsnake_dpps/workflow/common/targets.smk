@@ -64,7 +64,7 @@ def TARGETS_MC_SIMTEL(base: str, resolve: bool):
 
 def TARGETS_MC_DL1(base: str, resolve: bool):
     target_path = (
-        PATHS[f"{base}:mc_dl1"] + PATHS["core:template:mc_dl1"] + "/{filename}.dl1.h5"
+        PATHS[f"{base}:mc_dl1"] + PATHS["core:template:mc_dl1"] + "/{filename}.DL1.h5"
     )
     if resolve:
         return [

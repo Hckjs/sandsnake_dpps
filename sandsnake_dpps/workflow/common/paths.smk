@@ -112,11 +112,11 @@ PATHS = {
     # Main
     "core:template:mc_dl1": "/zen_{zen}/az_{az}/{particle}",
     "core:template:particle_split": "/zen_{zen}/az_{az}/{particle}/{split}",
-    "core:template:mc_dl1_merged": "/zen_{zen}/az_{az}/{particle}/{split}/{particle}_zen_{zen}_az_{az}_{split}_merged.dl1.h5",
+    "core:template:mc_dl1_merged": "/zen_{zen}/az_{az}/{particle}/{split}/{particle}_zen_{zen}_az_{az}_{split}_merged.DL1.h5",
     "core:template:rf_energy_regressor": "/zen_{zen}/az_{az}/rf_energy_regressor_zen_{zen}_az_{az}.pkl",
     "core:template:rf_particle_classifier": "/zen_{zen}/az_{az}/rf_particle_classifier_zen_{zen}_az_{az}.pkl",
     "core:template:rf_geometry_reconstructor": "/zen_{zen}/az_{az}/rf_geometry_reconstructor_zen_{zen}_az_{az}.pkl",
-    "core:template:mc_dl2": "/zen_{zen}/az_{az}/{particle}/{split}/{particle}_zen_{zen}_az_{az}_{split}.dl2.h5",
+    "core:template:mc_dl2": "/zen_{zen}/az_{az}/{particle}/{split}/{particle}_zen_{zen}_az_{az}_{split}.DL2.h5",
     "core:template:rf_performance_plots": "/zen_{zen}/az_{az}/model_performance_zen_{zen}_az_{az}.pdf",
     "core:template:cuts": "/zen_{zen}/az_{az}/cuts_zen_{zen}_az_{az}_obs_{obstime}_hours.fits.gz",
     "core:template:irfs": "/zen_{zen}/az_{az}/irfs_zen_{zen}_az_{az}_obs_{obstime}_hours.fits.gz",
@@ -124,14 +124,14 @@ PATHS = {
     "core:template:irf_plots": "/zen_{zen}/az_{az}/irfs_zen_{zen}_az_{az}_obs_{obstime}_hours.pdf",
     # Misc
     "core:template:mc_dl1_applied_e_reg": "/zen_{zen}/az_{az}/{particle}/train_cl_disp/"
-    "{particle}_zen_{zen}_az_{az}_train_cl_disp_applied.dl1.h5",
+    "{particle}_zen_{zen}_az_{az}_train_cl_disp_applied.DL1.h5",
 }
 
 OUTPATHS = {
     "mc_simtel": PATHS["core:mc_simtel"]
     + PATHS["core:template:mc_dl1"]
     + "/{filename}.simtel.gz",
-    "mc_dl1": PATHS["core:mc_dl1"] + PATHS["core:template:mc_dl1"] + "/{filename}.dl1.h5",
+    "mc_dl1": PATHS["core:mc_dl1"] + PATHS["core:template:mc_dl1"] + "/{filename}.DL1.h5",
     "mc_dl1_split": PATHS["stage:mc_dl1"] + PATHS["core:template:particle_split"],
     "mc_dl1_merged": PATHS["core:mc_dl1_merged"] + PATHS["core:template:mc_dl1_merged"],
     "apply_energy_regressor_train": PATHS["core:mc_dl1"]
