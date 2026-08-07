@@ -4,7 +4,7 @@ user_env_dir: ./examples/thesis/envs
 
 targets:
   mc_simtel: false
-  mc_dl1: false
+  mc_dl1: true
   mc_dl1_merged: false
   mc_dl2: false
   rf_energy_regressor: false
