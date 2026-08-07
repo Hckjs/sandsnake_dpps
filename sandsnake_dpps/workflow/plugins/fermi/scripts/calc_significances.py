@@ -368,9 +368,7 @@ class Source:
 
     @property
     def has_prior_redshift_scenarios(self) -> bool:
-        if self.z_source in [RedshiftSource.PRIOR_BLL, RedshiftSource.PRIOR_FSRQ]:
-            return True
-        return False
+        return self.z_source in [RedshiftSource.PRIOR_BLL, RedshiftSource.PRIOR_FSRQ]
 
     def _resolve_redshift_scenarios(self) -> list[RedshiftScenario] | None:
         if self.has_prior_redshift_scenarios:
@@ -426,7 +424,8 @@ class Source:
                 )
 
             if spec_type == "LogParabola" or (
-                spec_type == "PLSuperExpCutoff" and self.origin == SourceOrigin.GALACTIC
+                spec_type == "PLSuperExpCutoff"
+                and self.origin == SourceOrigin.EXTRAGALACTIC
             ):
                 return LogParabolaSpectralModel(
                     amplitude=self.row["LP_Flux_Density"] / u.ph,
