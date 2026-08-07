@@ -32,7 +32,7 @@ rule stage_mc_dl1:
         + PATHS["core:template:mc_dl1"]
         + "/{filename}.DL1.h5",
     output:
-        PATHS["stage:mc_dl1"] + PATHS["core:template:mc_dl1"] + "/{filename}.dl1.h5",
+        PATHS["stage:mc_dl1"] + PATHS["core:template:mc_dl1"] + "/{filename}.DL1.h5",
     run:
         _stage(input[0], output[0])
 
