@@ -21,7 +21,7 @@ thesis: | $(BUILD_DIR)
 	echo "=== [1/3] Full Array ==="; \
 	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
 		--config build_dir="$(BUILD_DIR)" \
-		--configfile "$(THESIS_CONFIG_ROOT)/configs/tailcuts_image_cleaning.yaml" \
+		--configfile "$(THESIS_CONFIG_ROOT)/configs/tailcuts_image_cleaning/core_analysis_config.yaml" \
 		$(SNAKEFLAGS); \
 	echo "=== [2/3] Full Array ==="; \
 	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
