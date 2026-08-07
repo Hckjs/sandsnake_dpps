@@ -45,6 +45,7 @@ LAC_COLUMNS_TO_APPEND = [
     "nu_syn",
     "nuFnu_syn",
     "Highest_energy",
+    "LAC_sample",
     "is_LAC_Source",
 ]
 

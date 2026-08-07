@@ -39,7 +39,7 @@ envvars:
 FERMI_CATALOGS = {
     "FGL": FERMI_CATALOGS_IN_DIR / "4FGL_DR4.fit",
     "FHL": FERMI_CATALOGS_IN_DIR / "3FHL.fit",
-    "LAC": FERMI_CATALOGS_IN_DIR / "4LAC_DR3_H.fits",
+    "LAC": FERMI_CATALOGS_IN_DIR / "4LAC_DR3_merged.fits",
 }
 
 FERMI_OUTDIR = OUTDIRS["plugins"] + "/fermi"
