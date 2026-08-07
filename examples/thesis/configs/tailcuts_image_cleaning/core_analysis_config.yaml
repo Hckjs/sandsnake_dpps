@@ -1,10 +1,10 @@
-run_tag: "full_array"
-user_config_dir: ./examples/thesis/configs/full_array
+run_tag: "tailcuts_image_cleaning"
+user_config_dir: ./examples/thesis/configs/tailcuts_image_cleaning
 user_env_dir: ./examples/thesis/envs
 
 targets:
   mc_simtel: false
-  mc_dl1: true
+  mc_dl1: false
   mc_dl1_merged: false
   mc_dl2: false
   rf_energy_regressor: false
@@ -40,4 +40,4 @@ obstimes: # hours
 train_size: 0.5
 cuts_size: 0.5
 
-plugins: ["fermi", "stereo_combiner"]
+plugins: null
