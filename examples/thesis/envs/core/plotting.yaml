@@ -8,6 +8,7 @@ dependencies:
   - regions=0.11
   - pyyaml
   - h5py
+  - uproot
   - pip
   - pip:
       - pyirf
