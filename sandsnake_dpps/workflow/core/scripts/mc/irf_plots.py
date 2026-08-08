@@ -220,7 +220,7 @@ def plot_angular_resolution(benchmarks_path):
 
     resources_path = REPO_ROOT / "resources"
     ctao_req_e, ctao_req_ang = np.loadtxt(
-        resources_path / "CTA_Requirements/cta_requirements_North-50h-AngRes.dat",
+        resources_path / "CTAO/CTA_Requirements/cta_requirements_North-50h-AngRes.dat",
         unpack=True,
     )
     ax_comp.plot(
@@ -368,7 +368,7 @@ def add_sensitivity_comparisons(ax, energy_limits):
 
     resources_path = REPO_ROOT / "resources"
     ctao_req_e, ctao_req_sens = np.loadtxt(
-        resources_path / "CTA_Requirements/cta_requirements_North-50h.dat",
+        resources_path / "CTAO/CTA_Requirements/cta_requirements_North-50h.dat",
         unpack=True,
     )
     ax.plot(
@@ -376,6 +376,22 @@ def add_sensitivity_comparisons(ax, energy_limits):
         ctao_req_sens,
         color=CTAO_COLORS["interstellar_indigo"],
         label="CTAO-N Req. (50h)",
+        alpha=0.8,
+    )
+
+    prod5_sensitivity = QTable.read(
+        resources_path
+        / "CTAO/PROD5/CTA-Performance-prod5-v0.1-North-20deg.FITS"
+        / "Prod5-North-20deg-AverageAz-4LSTs09MSTs.180000s-v0.1.fits.gz",
+        hdu="SENSITIVITY",
+    )
+    prod5_energy = 0.5 * (prod5_sensitivity["ENERG_LO"] + prod5_sensitivity["ENERG_HI"])
+    ax.plot(
+        prod5_energy.flatten(),
+        prod5_sensitivity["ENERGY_FLUX_SENSITIVITY"].flatten(),
+        color=CTAO_COLORS["interstellar_indigo"],
+        label="PROD5 (50h)",
+        linestyle="dashed",
         alpha=0.8,
     )
 
