@@ -220,7 +220,7 @@ def plot_angular_resolution(benchmarks_path):
 
     resources_path = REPO_ROOT / "resources"
     ctao_req_e, ctao_req_ang = np.loadtxt(
-        resources_path / "CTA_Requirements/cta_requirements_North-50h-AngRes.dat",
+        resources_path / "CTAO/CTA_Requirements/cta_requirements_North-50h-AngRes.dat",
         unpack=True,
     )
     ax_comp.plot(
@@ -368,7 +368,7 @@ def add_sensitivity_comparisons(ax, energy_limits):
 
     resources_path = REPO_ROOT / "resources"
     ctao_req_e, ctao_req_sens = np.loadtxt(
-        resources_path / "CTA_Requirements/cta_requirements_North-50h.dat",
+        resources_path / "CTAO/CTA_Requirements/cta_requirements_North-50h.dat",
         unpack=True,
     )
     ax.plot(
