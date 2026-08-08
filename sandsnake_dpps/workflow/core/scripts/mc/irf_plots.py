@@ -5,12 +5,24 @@ import matplotlib.pyplot as plt
 from pyirf.spectral import CRAB_MAGIC_JHEAP2015
 import numpy as np
 from pathlib import Path
+import uproot
 
 from ctapipe.irf.spectra import Spectra, SPECTRA, ENERGY_FLUX_UNIT
 from gammapy.irf import EnergyDispersion2D, EffectiveAreaTable2D, Background2D, PSF3D
 from common.plotting.colors import CTAO_COLORS, CTAO_CMAP_R
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
+
+
+def read_eventdisplay_sensitivity(root_path):
+    """Read the differential sensitivity histogram from an EventDisplay file."""
+    with uproot.open(root_path) as root_file:
+        sensitivity, energy_edges = root_file["DiffSens"].to_numpy()
+
+    energy = 0.5 * (energy_edges[:-1] + energy_edges[1:]) * u.TeV
+    sensitivity = sensitivity * ENERGY_FLUX_UNIT
+    valid = np.isfinite(sensitivity) & (sensitivity > 0)
+    return energy[valid], sensitivity[valid]
 
 
 def plots_cuts_distribution(cuts_path):
@@ -379,18 +391,16 @@ def add_sensitivity_comparisons(ax, energy_limits):
         alpha=0.8,
     )
 
-    prod5_sensitivity = QTable.read(
+    prod5_energy, prod5_sensitivity = read_eventdisplay_sensitivity(
         resources_path
-        / "CTAO/PROD5/CTA-Performance-prod5-v0.1-North-20deg.FITS"
-        / "Prod5-North-20deg-AverageAz-4LSTs09MSTs.180000s-v0.1.fits.gz",
-        hdu="SENSITIVITY",
+        / "CTAO/PROD5/CTA-Performance-prod5-v0.1-North-20deg.ROOT"
+        / "Prod5-North-20deg-AverageAz-4LSTs09MSTs.180000s-v0.1.root"
     )
-    prod5_energy = 0.5 * (prod5_sensitivity["ENERG_LO"] + prod5_sensitivity["ENERG_HI"])
     ax.plot(
-        prod5_energy.flatten(),
-        prod5_sensitivity["ENERGY_FLUX_SENSITIVITY"].flatten(),
+        prod5_energy,
+        prod5_sensitivity,
         color=CTAO_COLORS["interstellar_indigo"],
-        label="PROD5 (50h)",
+        label="PROD5 EventDisplay NorthAlpha (50h)",
         linestyle="dashed",
         alpha=0.8,
     )
