@@ -5,7 +5,7 @@ STEREO_COMBINER_OUTDIR = f'{OUTDIRS["plugins"]}/stero_combiner'
 STEREO_COMBINER_PATHS = {
     "mc_dl2": STEREO_COMBINER_OUTDIR
     + "/mc/dl2/zen_20/az_180/{particle}"
-    + "/{split}/{particle}_zen_20_az_180_{split}_comb_{combiner}.dl2.h5",
+    + "/{split}/{particle}_zen_20_az_180_{split}_comb_{combiner}.DL2.h5",
     "cuts": STEREO_COMBINER_OUTDIR
     + "/irfs/zen_20/az_180"
     + "/cuts_zen_20_az_180_obs_50_hours_comb_{combiner}.fits.gz",
