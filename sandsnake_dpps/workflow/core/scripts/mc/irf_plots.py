@@ -379,6 +379,22 @@ def add_sensitivity_comparisons(ax, energy_limits):
         alpha=0.8,
     )
 
+    prod5_sensitivity = QTable.read(
+        resources_path
+        / "CTAO/PROD5/CTA-Performance-prod5-v0.1-North-20deg.FITS"
+        / "Prod5-North-20deg-AverageAz-4LSTs09MSTs.180000s-v0.1.fits.gz",
+        hdu="SENSITIVITY",
+    )
+    prod5_energy = 0.5 * (prod5_sensitivity["ENERG_LO"] + prod5_sensitivity["ENERG_HI"])
+    ax.plot(
+        prod5_energy.flatten(),
+        prod5_sensitivity["ENERGY_FLUX_SENSITIVITY"].flatten(),
+        color=CTAO_COLORS["interstellar_indigo"],
+        label="PROD5 (50h)",
+        linestyle="dashed",
+        alpha=0.8,
+    )
+
     veritas_data = np.loadtxt(
         resources_path / "VERITAS/VERITAS_V6_std_50hr_5sigma_VERITAS2014_DiffSens.dat",
     )
