@@ -4,6 +4,6 @@ channels:
 dependencies:
   - python=3.13
   - pip
+  - ctapipe=0.32.0
   - pip:
       - pyirf
-      - git+https://github.com/Hckjs/ctapipe.git@stereo_combiner
