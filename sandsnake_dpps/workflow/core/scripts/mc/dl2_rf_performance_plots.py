@@ -66,7 +66,7 @@ def direction_results(data, axes):
     axes[1, 1].set_ylabel(r"$Azimuth_{reco}$")
 
 
-def plot_alt_az_reco(data, axes):
+def plot_alt_az_reco(data):
     # just copied from lstchains lst_sensitivity_pyirf notebook - needs to be adapted
     fig, axs = plt.subplots(1, 5, figsize=(30, 4))
     emin_bins = [0.0, 0.1, 0.5, 1, 5] * u.TeV
@@ -87,7 +87,6 @@ def plot_alt_az_reco(data, axes):
         ax.set_xlabel("Az (º)")
         ax.set_ylabel("Alt (º)")
         fig.colorbar(pcm[3], ax=ax)
-    plt.show()
 
 
 ## Energy Reconstruction ##
@@ -245,7 +244,7 @@ def plot_models_feature_importances(
             ax.set_title(f"{title_prefix} - TelType {i}")
 
     fig.suptitle("Feature Importances of All RF Models", fontsize=18)
-    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     return fig
 
 

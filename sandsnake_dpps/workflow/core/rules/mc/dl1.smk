@@ -62,7 +62,7 @@ rule mc_dl1_merge:
         select_env("ctapipe", "core")
     params:
         split_dir=OUTPATHS["mc_dl1_split"],
-        pattern="*.dl1.h5",
+        pattern="*.DL1.h5",
     log:
         log=log_path(OUTPATHS["mc_dl1_merged"], ".log"),
         provenance=log_path(OUTPATHS["mc_dl1_merged"], ".provenance"),

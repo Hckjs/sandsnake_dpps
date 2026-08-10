@@ -1,0 +1,14 @@
+figure.constrained_layout.use: True
+
+axes.prop_cycle: cycler("color", ["00004A", "00E4D8", "E50000", "15B01A", "FF81C0"])
+# cherenkov_blue : #00004A
+# cherenkov_cyan : #00E4D8
+# xkcd-red : #E50000
+# xkcd-green : #15B01A
+# xkcd-pink : #FF81C0
+
+grid.linestyle: :
+grid.linewidth: 0.6
+grid.alpha: 0.4
+
+savefig.bbox: tight

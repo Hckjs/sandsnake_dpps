@@ -4,9 +4,11 @@ channels:
 dependencies:
   - python=3.13
   - ctaplot
-  - gammapy
+  - gammapy=2.1
+  - regions=0.11
   - pyyaml
   - h5py
+  - uproot
   - ctapipe
   - pip
   - pip:

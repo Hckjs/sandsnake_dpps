@@ -3,7 +3,7 @@ import matplotlib
 from ctapipe.io import TableLoader
 from pathlib import Path
 
-from .stereo_combiner_plots import (
+from plugins.stereo_combiner.scripts.stereo_combiner_plots import (
     plot_theta2,
     plot_lon_lat,
     stack_theta_hist,
@@ -62,10 +62,19 @@ def main(dl2_gammas, output):
         pdf.savefig(fig_lon_lat)
 
 
-if __name__ == "__main__":
+def parse_args():
     parser = ArgumentParser()
     parser.add_argument("--input", required=True, nargs="+")
     parser.add_argument("-o", "--output", required=True)
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+def main_from_snakemake(snakemake):
+    main(snakemake.input.data, snakemake.output[0])
+
+
+if "snakemake" in globals():
+    main_from_snakemake(snakemake)  # noqa: F821
+elif __name__ == "__main__":
+    args = parse_args()
     main(args.input, args.output)

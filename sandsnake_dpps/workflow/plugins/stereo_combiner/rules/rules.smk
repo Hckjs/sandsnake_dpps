@@ -16,14 +16,8 @@ rule reapply_stereo_combiner:
         log_path(PATHS["stereo_combiner:mc_dl2"], ".benchmark")
     resources:
         mem_mb=10000,
-    shell:
-        """
-        PYTHONPATH={WORKFLOW_DIR} \
-        python -m plugins.stereo_combiner.scripts.apply_stereo_combiner \
-            --input {input.data}  \
-            --output {output} \
-            --combiner {params.combiner} \
-        """
+    script:
+        STEREO_COMBINER_SCRIPTS_DIR / "apply_stereo_combiner.py"
 
 
 rule stereo_comb_optimize_cuts:
@@ -120,13 +114,8 @@ rule stereo_comb_plot_theta2_reco_lon_lat:
         log_path(PATHS["stereo_combiner:plot_reco_lon_lat"], ".benchmark")
     resources:
         mem_mb=10000,
-    shell:
-        """
-        PYTHONPATH={WORKFLOW_DIR} \
-        python -m plugins.stereo_combiner.scripts.plot_stereo_combiner_theta2_reco_lon_lat \
-        --input {input.data} \
-        --output {output} \
-        """
+    script:
+        STEREO_COMBINER_SCRIPTS_DIR / "plot_stereo_combiner_theta2_reco_lon_lat.py"
 
 
 rule stereo_comb_plot_irfs_sens:
@@ -145,11 +134,5 @@ rule stereo_comb_plot_irfs_sens:
         log_path(PATHS["stereo_combiner:plot_irfs"], ".benchmark")
     resources:
         mem_mb=2000,
-    shell:
-        """
-        PYTHONPATH={WORKFLOW_DIR} \
-        python -m plugins.stereo_combiner.scripts.plot_stereo_combiner_irfs_sens \
-        --input_irfs {input.irfs} \
-        --input_benchmarks {input.benchmarks} \
-        --output {output} \
-        """
+    script:
+        STEREO_COMBINER_SCRIPTS_DIR / "plot_stereo_combiner_irfs_sens.py"

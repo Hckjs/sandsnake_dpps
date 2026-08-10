@@ -4,7 +4,11 @@
 
 
 def _ext(input_key: str, re_none: bool = True):
-    val = config.get("inputs", {}).get(input_key)
+    inputs = config.get("inputs", None)
+    if not isinstance(inputs, dict):
+        raise ValueError("config['inputs'] must be a mapping of input names to paths")
+
+    val = inputs.get(input_key)
     if val in (None, "", "null"):
         if re_none:
             return None
@@ -13,16 +17,13 @@ def _ext(input_key: str, re_none: bool = True):
     return str(Path(val).expanduser().resolve())
 
 
-def bind_wildcards(provider, **overrides):
-    def _call(wc):
-        data = dict(wc)
-        data.update(overrides)
-        if isinstance(provider, str):
-            return provider.format(**data)
-        path = provider(wc)
-        return path.format(**data)
-
-    return _call
+def _target(target_key: str) -> bool:
+    targets = config.get("targets", None)
+    if not isinstance(targets, dict):
+        raise ValueError(
+            "config['targets'] must be a mapping of target names to booleans"
+        )
+    return targets.get(target_key)
 
 
 def _select_input(input_key: str) -> str:
@@ -38,6 +39,18 @@ def _select_input(input_key: str) -> str:
     return "core"
 
 
+def bind_wildcards(provider, **overrides):
+    def _call(wc):
+        data = dict(wc)
+        data.update(overrides)
+        if isinstance(provider, str):
+            return provider.format(**data)
+        path = provider(wc)
+        return path.format(**data)
+
+    return _call
+
+
 # ------------------------------------------------------------------
 # MC providers
 # ------------------------------------------------------------------
@@ -45,7 +58,7 @@ def _select_input(input_key: str) -> str:
 
 def mc_simtel_provider(wc):
     # DL1 reprocessing
-    if _ext("mc_dl1") and "mc_dl1" in config.get("targets", []):
+    if _ext("mc_dl1") and _target("mc_dl1"):
         return mc_dl1_provider(wc)
 
     base = _select_input("mc_simtel")
@@ -92,6 +105,24 @@ def rf_geometry_reconstructor_provider(wc):
 # ------------------------------------------------------------------
 
 
+def irfs_gamma_particle() -> str:
+    """Return the configured gamma MC sample for cut optimization and IRFs."""
+    irfs_config = config.get("irfs", {})
+    if not isinstance(irfs_config, dict):
+        raise ValueError("config['irfs'] must be a mapping when configured")
+
+    gamma_particle = irfs_config.get("gamma_particle", "gamma")
+    valid_particles = {"gamma", "gamma_diffuse"}
+    if not isinstance(gamma_particle, str) or gamma_particle not in valid_particles:
+        valid_values = ", ".join(sorted(valid_particles))
+        raise ValueError(
+            "config['irfs']['gamma_particle'] must be one of "
+            f"{valid_values}; got {gamma_particle!r}"
+        )
+
+    return gamma_particle
+
+
 def irfs_provider(wc):
     base = _select_input("irfs")
     return TARGETS_IRFS(base, resolve=False)
@@ -120,47 +151,52 @@ def mc_dl1_split_provider(wc):
 
     base_dir = _ext("mc_dl1")
     # if Dl1 reprocessing
-    if base_dir and "mc_dl1" in config.get("targets", []):
+    if base_dir and _target("mc_dl1"):
         base_dir = PATHS["core:mc_dl1"]
 
     parent_dir = f"/zen_{wc.zen}/az_{wc.az}/{particle}"
     filenames = get_filenames(wc.zen, wc.az, particle)
 
     split_path = Path(base_dir + parent_dir)
-    split_files = [split_path / f"{fname}.dl1.h5" for fname in filenames]
+    split_files = [split_path / f"{fname}.DL1.h5" for fname in filenames]
 
     num_files = len(split_files)
     train_files = split_files[: int(num_files * train_size)]
     test_files = split_files[int(num_files * train_size) :]
 
-    # TODO: Make a check that splits are not empty
+    def non_empty(files):
+        if not files:
+            raise ValueError(
+                f"MC DL1 split '{split}' for particle '{particle}' is empty."
+            )
+        return files
 
     if particle == "gamma_diffuse":
         if split == "train_en":
-            return train_files[: int(len(train_files) * 0.4)]
+            return non_empty(train_files[: int(len(train_files) * 0.5)])
         if split == "train_cl_disp":
-            return train_files[int(len(train_files) * 0.4) :]
+            return non_empty(train_files[int(len(train_files) * 0.5) :])
         if split == "test_cuts":
-            return test_files[: int(len(test_files) * cuts_size)]
+            return non_empty(test_files[: int(len(test_files) * cuts_size)])
         if split == "test_irfs":
-            return test_files[int(len(test_files) * cuts_size) :]
+            return non_empty(test_files[int(len(test_files) * cuts_size) :])
 
     if particle == "proton":
         if split == "train_cl_disp":
-            return train_files
+            return non_empty(train_files)
         if split == "test_cuts":
-            return test_files[: int(len(test_files) * cuts_size)]
+            return non_empty(test_files[: int(len(test_files) * cuts_size)])
         if split == "test_irfs":
-            return test_files[int(len(test_files) * cuts_size) :]
+            return non_empty(test_files[int(len(test_files) * cuts_size) :])
 
     if particle == "gamma":
         if split == "test_cuts":
-            return split_files[: int(num_files * cuts_size)]
+            return non_empty(split_files[: int(num_files * cuts_size)])
         if split == "test_irfs":
-            return split_files[int(num_files * cuts_size) :]
+            return non_empty(split_files[int(num_files * cuts_size) :])
 
     if particle == "electron":
         if split == "test_cuts":
-            return split_files[: int(num_files * cuts_size)]
+            return non_empty(split_files[: int(num_files * cuts_size)])
         if split == "test_irfs":
-            return split_files[int(num_files * cuts_size) :]
+            return non_empty(split_files[int(num_files * cuts_size) :])

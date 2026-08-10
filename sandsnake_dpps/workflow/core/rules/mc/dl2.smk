@@ -52,14 +52,5 @@ rule plot_rf_performance:
         log_path(OUTPATHS["rf_performance_plots"], ".benchmark")
     resources:
         mem_mb=25000,
-    shell:
-        """
-        python {input.script} \
-        --gammas {input.gamma} \
-        --protons {input.proton} \
-        --disp-model {input.model_disp} \
-        --e-reg-model {input.model_e_reg} \
-        --clf-model {input.model_p_clf} \
-        --config {input.config} \
-        --output {output} \
-        """
+    script:
+        CORE_SCRIPTS_DIR / "mc/plot_dl2_rf_performance.py"

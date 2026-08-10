@@ -6,19 +6,28 @@ from ctapipe.reco.reconstructor import ReconstructionProperty
 from ctapipe.io import HDF5EventSource, DataWriter
 from ctapipe.io.tableio import TelListToMaskTransform
 
-from .stereo_combiner import StereoCombiner
+from plugins.stereo_combiner.scripts.stereo_combiner import StereoCombiner
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
 def main(input, output, combiner):
-    stereo_combiner = StereoCombiner.from_name(
-        combiner,
-        prefix="disp",
-        property=ReconstructionProperty.GEOMETRY,
-        weights="aspect-weighted-intensity",
-    )
+    if combiner == "StereoDispCombinerAngCut":
+        stereo_combiner = StereoCombiner.from_name(
+            "StereoDispCombiner",
+            prefix="disp",
+            property=ReconstructionProperty.GEOMETRY,
+            weights="aspect-weighted-intensity",
+            min_ang_diff=20,
+        )
+    else:
+        stereo_combiner = StereoCombiner.from_name(
+            combiner,
+            prefix="disp",
+            property=ReconstructionProperty.GEOMETRY,
+            weights="aspect-weighted-intensity",
+        )
 
     with (
         HDF5EventSource(input_url=input) as source,
@@ -53,13 +62,26 @@ def main(input, output, combiner):
         writer.write_simulated_shower_distributions(shower_dists)
 
 
-if __name__ == "__main__":
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--combiner", required=True)
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+def main_from_snakemake(snakemake):
+    main(
+        snakemake.input.data,
+        snakemake.output[0],
+        snakemake.params.combiner,
+    )
+
+
+if "snakemake" in globals():
+    main_from_snakemake(snakemake)  # noqa: F821
+elif __name__ == "__main__":
+    args = parse_args()
     main(
         args.input,
         args.output,

@@ -108,7 +108,7 @@ TrainDispReconstructor:
       weights: "aspect-weighted-intensity" # (e.g. which kind of weights to use).
       n_tel_combinations: 2
       n_best_tels: null
-      min_ang_diff: null
+      min_ang_diff: 25
 
 TrainEnergyRegressor:
   random_seed: 0 # Seed used for sampling n_events for training.

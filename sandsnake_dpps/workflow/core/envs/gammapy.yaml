@@ -3,4 +3,5 @@ channels:
   - conda-forge
 dependencies:
   - python=3.13
-  - gammapy
+  - gammapy=2.1
+  - regions=0.11

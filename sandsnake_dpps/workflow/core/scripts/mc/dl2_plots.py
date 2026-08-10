@@ -38,7 +38,6 @@ def plot_theta_2(dl2_table):
     ax_theta_2.set_xlabel(r"$\theta^2$ / deg")
     ax_theta_2.set_ylabel("# of events")
     ax_theta_2.set_yscale("log")
-    fig_theta_2.tight_layout()
 
     return fig_theta_2
 
@@ -83,7 +82,6 @@ def plot_reco_lon_lat(dl2_table):
     ax_2d_hist.set_ylabel("Latitude / deg")
     ax_2d_hist.set_title("Reconstructed Lon/Lat")
     ax_2d_hist.set_aspect("equal")
-    fig_2d_hist.tight_layout()
 
     return fig_2d_hist
 
@@ -147,7 +145,6 @@ def plot_theta_2_tel(hist, tel_type):
     ax_theta_2.set_xlabel(r"$\theta^2$ / deg")
     ax_theta_2.set_ylabel("# of events")
     ax_theta_2.set_yscale("log")
-    fig_theta_2.tight_layout()
 
     return fig_theta_2
 
@@ -170,6 +167,5 @@ def plot_reco_alt_az_tel(hist, tel_type):
     ax_2d_hist.set_title(f"Reconstructed Lon/Lat for {tel_type}")
     ax_2d_hist.set_aspect("equal")
     fig_2d_hist.colorbar(h, ax=ax_2d_hist, label="Counts")
-    fig_2d_hist.tight_layout()
 
     return fig_2d_hist
