@@ -4,6 +4,7 @@ channels:
 dependencies:
   - python=3.13
   - ctaplot
+  - ctapipe=0.31.0
   - gammapy=2.1
   - regions=0.11
   - pyyaml
@@ -12,4 +13,3 @@ dependencies:
   - pip
   - pip:
       - pyirf
-      - git+https://github.com/Hckjs/ctapipe.git@stereo_combiner
