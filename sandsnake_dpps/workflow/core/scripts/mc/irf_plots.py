@@ -19,10 +19,19 @@ def read_eventdisplay_sensitivity(root_path):
     with uproot.open(root_path) as root_file:
         sensitivity, energy_edges = root_file["DiffSens"].to_numpy()
 
-    energy = 0.5 * (energy_edges[:-1] + energy_edges[1:]) * u.TeV
-    sensitivity = sensitivity * ENERGY_FLUX_UNIT
+    # EventDisplay stores the bin edges as log10(E / TeV).
+    energy_edges = np.power(10, energy_edges) * u.TeV
     valid = np.isfinite(sensitivity) & (sensitivity > 0)
-    return energy[valid], sensitivity[valid]
+    energy = np.sqrt(energy_edges[:-1] * energy_edges[1:])
+    energy_widths = (
+        energy - energy_edges[:-1],
+        energy_edges[1:] - energy,
+    )
+    return (
+        energy[valid],
+        (energy_widths[0][valid], energy_widths[1][valid]),
+        sensitivity[valid] * ENERGY_FLUX_UNIT,
+    )
 
 
 def plots_cuts_distribution(cuts_path):
@@ -391,17 +400,18 @@ def add_sensitivity_comparisons(ax, energy_limits):
         alpha=0.8,
     )
 
-    prod5_energy, prod5_sensitivity = read_eventdisplay_sensitivity(
+    prod5_energy, prod5_energy_width, prod5_sensitivity = read_eventdisplay_sensitivity(
         resources_path
         / "CTAO/PROD5/CTA-Performance-prod5-v0.1-North-20deg.ROOT"
         / "Prod5-North-20deg-AverageAz-4LSTs09MSTs.180000s-v0.1.root"
     )
-    ax.plot(
+    ax.errorbar(
         prod5_energy,
         prod5_sensitivity,
-        color=CTAO_COLORS["interstellar_indigo"],
-        label="PROD5 EventDisplay NorthAlpha (50h)",
-        linestyle="dashed",
+        xerr=prod5_energy_width,
+        color=CTAO_COLORS["cherenkov_cyan"],
+        label="PROD5 EventDisplay (50h)",
+        ls="",
         alpha=0.8,
     )
 
