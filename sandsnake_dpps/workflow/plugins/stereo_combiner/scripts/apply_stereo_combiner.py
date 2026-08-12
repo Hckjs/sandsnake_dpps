@@ -13,12 +13,21 @@ log.setLevel(logging.DEBUG)
 
 
 def main(input, output, combiner):
-    stereo_combiner = StereoCombiner.from_name(
-        combiner,
-        prefix="disp",
-        property=ReconstructionProperty.GEOMETRY,
-        weights="aspect-weighted-intensity",
-    )
+    if combiner == "StereoDispCombinerAngCut":
+        stereo_combiner = StereoCombiner.from_name(
+            "StereoDispCombiner",
+            prefix="disp",
+            property=ReconstructionProperty.GEOMETRY,
+            weights="aspect-weighted-intensity",
+            min_ang_diff=20,
+        )
+    else:
+        stereo_combiner = StereoCombiner.from_name(
+            combiner,
+            prefix="disp",
+            property=ReconstructionProperty.GEOMETRY,
+            weights="aspect-weighted-intensity",
+        )
 
     with (
         HDF5EventSource(input_url=input) as source,

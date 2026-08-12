@@ -25,6 +25,7 @@ paths_update("stereo_combiner", STEREO_COMBINER_PATHS)
 stereo_combiners = [
     "StereoMeanCombiner",
     "StereoDispCombiner",
+    "StereoDispCombinerAngCut",
     "StereoKMeansCombiner",
     "StereoDBScanCombiner",
 ]

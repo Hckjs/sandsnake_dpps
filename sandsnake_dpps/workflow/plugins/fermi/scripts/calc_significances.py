@@ -1157,7 +1157,7 @@ class SourceAnalysis:
                 color=CTAO_COLORS["cherenkov_cyan"],
             )
 
-        add_sensitivity_comparisons(ax, energy_limits=e_lim)
+        add_sensitivity_comparisons(ax, energy_limits=e_lim, add_prod5=False)
 
         ax.set_ylim(3.0e-14, 1.0e-9)
         ax.set_xlim(e_lim)
