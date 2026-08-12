@@ -5,12 +5,33 @@ import matplotlib.pyplot as plt
 from pyirf.spectral import CRAB_MAGIC_JHEAP2015
 import numpy as np
 from pathlib import Path
+import uproot
 
 from ctapipe.irf.spectra import Spectra, SPECTRA, ENERGY_FLUX_UNIT
 from gammapy.irf import EnergyDispersion2D, EffectiveAreaTable2D, Background2D, PSF3D
 from common.plotting.colors import CTAO_COLORS, CTAO_CMAP_R
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
+
+
+def read_eventdisplay_sensitivity(root_path):
+    """Read the differential sensitivity histogram from an EventDisplay file."""
+    with uproot.open(root_path) as root_file:
+        sensitivity, energy_edges = root_file["DiffSens"].to_numpy()
+
+    # EventDisplay stores the bin edges as log10(E / TeV).
+    energy_edges = np.power(10, energy_edges) * u.TeV
+    valid = np.isfinite(sensitivity) & (sensitivity > 0)
+    energy = np.sqrt(energy_edges[:-1] * energy_edges[1:])
+    energy_widths = (
+        energy - energy_edges[:-1],
+        energy_edges[1:] - energy,
+    )
+    return (
+        energy[valid],
+        (energy_widths[0][valid], energy_widths[1][valid]),
+        sensitivity[valid] * ENERGY_FLUX_UNIT,
+    )
 
 
 def plots_cuts_distribution(cuts_path):
@@ -220,7 +241,7 @@ def plot_angular_resolution(benchmarks_path):
 
     resources_path = REPO_ROOT / "resources"
     ctao_req_e, ctao_req_ang = np.loadtxt(
-        resources_path / "CTA_Requirements/cta_requirements_North-50h-AngRes.dat",
+        resources_path / "CTAO/CTA_Requirements/cta_requirements_North-50h-AngRes.dat",
         unpack=True,
     )
     ax_comp.plot(
@@ -337,79 +358,111 @@ def plot_sensitivity(benchmarks_path):
     return [fig, fig_fov]
 
 
-def add_sensitivity_comparisons(ax, energy_limits):
-    # Plot Crab SED
-    plot_Crab_SED(
-        energy_limits[0] * u.TeV,
-        energy_limits[1] * u.TeV,
-        percentage=100,
-        ax=ax,
-        label="100% Crab",
-        alpha=0.5,
-    )
-    plot_Crab_SED(
-        energy_limits[0] * u.TeV,
-        energy_limits[1] * u.TeV,
-        percentage=10,
-        ax=ax,
-        linestyle="--",
-        label="10% Crab",
-        alpha=0.5,
-    )
-    plot_Crab_SED(
-        energy_limits[0] * u.TeV,
-        energy_limits[1] * u.TeV,
-        percentage=1,
-        ax=ax,
-        linestyle=":",
-        label="1% Crab",
-        alpha=0.5,
-    )
-
+def add_sensitivity_comparisons(
+    ax,
+    energy_limits,
+    add_crab=True,
+    add_requirements=True,
+    add_prod5=True,
+    add_veritas=True,
+    add_magic=True,
+):
     resources_path = REPO_ROOT / "resources"
-    ctao_req_e, ctao_req_sens = np.loadtxt(
-        resources_path / "CTA_Requirements/cta_requirements_North-50h.dat",
-        unpack=True,
-    )
-    ax.plot(
-        ctao_req_e,
-        ctao_req_sens,
-        color=CTAO_COLORS["interstellar_indigo"],
-        label="CTAO-N Req. (50h)",
-        alpha=0.8,
-    )
 
-    veritas_data = np.loadtxt(
-        resources_path / "VERITAS/VERITAS_V6_std_50hr_5sigma_VERITAS2014_DiffSens.dat",
-    )
-    veritas_e = veritas_data[:, 0]
-    veritas_rel_flux = veritas_data[:, 1]
-    ax.plot(
-        veritas_e,
-        (
-            veritas_rel_flux
-            * SPECTRA[Spectra.CRAB_HEGRA](veritas_e * u.TeV)
-            * (veritas_e * u.TeV) ** 2
-        ).to(ENERGY_FLUX_UNIT),
-        color=CTAO_COLORS["cosmic_azure"],
-        label="VERITAS (50h)",
-        linestyle="dashed",
-        alpha=0.8,
-    )
+    if add_crab:
+        # Plot Crab SED
+        plot_Crab_SED(
+            energy_limits[0] * u.TeV,
+            energy_limits[1] * u.TeV,
+            percentage=100,
+            ax=ax,
+            label="100% Crab",
+            alpha=0.5,
+        )
+        plot_Crab_SED(
+            energy_limits[0] * u.TeV,
+            energy_limits[1] * u.TeV,
+            percentage=10,
+            ax=ax,
+            linestyle="--",
+            label="10% Crab",
+            alpha=0.5,
+        )
+        plot_Crab_SED(
+            energy_limits[0] * u.TeV,
+            energy_limits[1] * u.TeV,
+            percentage=1,
+            ax=ax,
+            linestyle=":",
+            label="1% Crab",
+            alpha=0.5,
+        )
 
-    magic_e, magic_flux = np.genfromtxt(
-        resources_path / "MAGIC/MAGIC_differential_sensitivity_50hr_2025.csv",
-        unpack=True,
-        skip_header=2,
-    )
-    ax.plot(
-        (magic_e * u.GeV).to(u.TeV).value,
-        magic_flux * u.Unit("TeV cm-2 s-1").to(ENERGY_FLUX_UNIT),
-        color=CTAO_COLORS["cosmic_azure"],
-        label="MAGIC (50h)",
-        linestyle="dotted",
-        alpha=0.8,
-    )
+    if add_requirements:
+        ctao_req_e, ctao_req_sens = np.loadtxt(
+            resources_path / "CTAO/CTA_Requirements/cta_requirements_North-50h.dat",
+            unpack=True,
+        )
+        ax.plot(
+            ctao_req_e,
+            ctao_req_sens,
+            color=CTAO_COLORS["interstellar_indigo"],
+            label="CTAO-N Req. (50h)",
+            alpha=0.8,
+        )
+
+    if add_prod5:
+        prod5_energy, prod5_energy_width, prod5_sensitivity = (
+            read_eventdisplay_sensitivity(
+                resources_path
+                / "CTAO/PROD5/CTA-Performance-prod5-v0.1-North-20deg.ROOT"
+                / "Prod5-North-20deg-AverageAz-4LSTs09MSTs.180000s-v0.1.root"
+            )
+        )
+        ax.errorbar(
+            prod5_energy,
+            prod5_sensitivity,
+            xerr=prod5_energy_width,
+            color=CTAO_COLORS["cherenkov_cyan"],
+            label="PROD5 EventDisplay (50h)",
+            ls="",
+            alpha=0.8,
+        )
+
+    if add_veritas:
+        veritas_data = np.loadtxt(
+            resources_path
+            / "VERITAS/VERITAS_V6_std_50hr_5sigma_VERITAS2014_DiffSens.dat",
+        )
+        veritas_e = veritas_data[:, 0]
+        veritas_rel_flux = veritas_data[:, 1]
+        ax.plot(
+            veritas_e,
+            (
+                veritas_rel_flux
+                * SPECTRA[Spectra.CRAB_HEGRA](veritas_e * u.TeV)
+                * (veritas_e * u.TeV) ** 2
+            ).to(ENERGY_FLUX_UNIT),
+            color=CTAO_COLORS["cosmic_azure"],
+            label="VERITAS (50h)",
+            linestyle="dashed",
+            alpha=0.8,
+        )
+
+    if add_magic:
+        magic_e, magic_flux = np.genfromtxt(
+            resources_path / "MAGIC/MAGIC_differential_sensitivity_50hr_2025.csv",
+            unpack=True,
+            skip_header=2,
+        )
+        ax.plot(
+            (magic_e * u.GeV).to(u.TeV).value,
+            magic_flux * u.Unit("TeV cm-2 s-1").to(ENERGY_FLUX_UNIT),
+            color=CTAO_COLORS["cosmic_azure"],
+            label="MAGIC (50h)",
+            linestyle="dotted",
+            alpha=0.8,
+        )
 
 
 def plot_Crab_SED(emin, emax, percentage=100, ax=None, **kwargs):
