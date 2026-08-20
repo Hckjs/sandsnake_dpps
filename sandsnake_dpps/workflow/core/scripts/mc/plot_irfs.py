@@ -2,13 +2,14 @@ from argparse import ArgumentParser
 import matplotlib
 
 from core.scripts.mc.irf_plots import (
+    plot_a_eff,
     plot_angular_resolution,
+    plot_psf_radius,
     plots_cuts_distribution,
+    plot_energy_resolution,
     plot_energy,
     plot_sensitivity,
-    plot_a_eff,
     plot_background_rate_energy,
-    plot_psf_radius,
 )
 
 if matplotlib.get_backend() == "pgf":
@@ -18,29 +19,34 @@ else:
 
 
 def main(irfs_file, cuts_file, benchmark_file, output):
-    figs_sens = plot_sensitivity(benchmark_file)
-    fig_a_eff = plot_a_eff(irfs_file)
-    figs_ang_res = plot_angular_resolution(benchmark_file)
-    figs_energy = plot_energy(irfs_file, benchmark_file)
-    figs_cuts = plots_cuts_distribution(cuts_file)
-    fig_bkg = plot_background_rate_energy(irfs_file)
-    fig_psf = plot_psf_radius(irfs_file)
+    if irfs_file is None and cuts_file is None and benchmark_file is None:
+        raise ValueError("No input files are given.")
+
+    figs = []
+    if benchmark_file is not None:
+        figs.extend(plot_sensitivity(benchmark_file))
+        figs.extend(plot_angular_resolution(benchmark_file))
+        figs.extend(plot_energy_resolution(benchmark_file))
+
+    if irfs_file is not None:
+        figs.extend(plot_energy(irfs_file))
+        figs.extend(plot_a_eff(irfs_file))
+        figs.extend(plot_psf_radius(irfs_file))
+        figs.extend(plot_background_rate_energy(irfs_file))
+
+    if cuts_file is not None:
+        figs.extend(plots_cuts_distribution(cuts_file))
 
     with PdfPages(output) as pdf:
-        for fig in figs_sens + figs_ang_res:
+        for fig in figs:
             pdf.savefig(fig)
-        pdf.savefig(fig_a_eff)
-        pdf.savefig(fig_psf)
-        for fig in figs_energy + figs_cuts:
-            pdf.savefig(fig)
-        pdf.savefig(fig_bkg)
 
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument("--irfs-file", required=True)
-    parser.add_argument("--cuts-file", required=True)
-    parser.add_argument("--benchmark-file", required=True)
+    parser.add_argument("--irfs-file", required=False, default=None)
+    parser.add_argument("--cuts-file", required=False, default=None)
+    parser.add_argument("--benchmark-file", required=False, default=None)
     parser.add_argument("-o", "--output", required=True)
     return parser.parse_args()
 

@@ -103,24 +103,18 @@ def plot_a_eff(irfs_path):
     ax.set_title("Effective Area")
     ax.set_ylabel("Effective Area / $m^{2}$")
     ax.set_xlabel(r"$E_{True}$ / TeV")
-    return fig
+    return [fig]
 
 
-def plot_energy(irfs_path, benchmarks_path):
-    figs = []
-    edisp_table = EnergyDispersion2D.read(irfs_path, hdu="ENERGY DISPERSION")
+def plot_energy_resolution(benchmarks_path):
     e_resolution = QTable.read(benchmarks_path, hdu="ENERGY BIAS RESOLUTION")
+    fig, ax = plt.subplots()
 
-    fig_res, ax_res = plt.subplots(1, 1)
-    fig_bias, ax_bias = plt.subplots(1, 1)
-    fig_mat, ax_mat = plt.subplots(1, 1)
-
-    # Energy Resolution
     fov_centers = (
         0.5 * (e_resolution["THETA_LO"] + e_resolution["THETA_HI"])
     ).flatten()
     for i, offset in enumerate(fov_centers):
-        ax_res.errorbar(
+        ax.errorbar(
             (0.5 * (e_resolution["ENERG_LO"] + e_resolution["ENERG_HI"])).flatten(),
             e_resolution["RESOLUTION"][:, i, :].flatten(),
             xerr=0.5 * (e_resolution["ENERG_HI"] - e_resolution["ENERG_LO"]),
@@ -129,16 +123,25 @@ def plot_energy(irfs_path, benchmarks_path):
             label=f"offset = {offset}",
         )
 
-    ax_res.set_xscale("log")
-    ax_res.set_xlim(
+    ax.set_xscale("log")
+    ax.set_xlim(
         e_resolution["ENERG_LO"][0][0].to_value(u.TeV),
         e_resolution["ENERG_HI"][0][-1].to_value(u.TeV),
     )
-    ax_res.set_title("Energy Resolution")
-    ax_res.set_xlabel(r"$E_{True}$ / TeV")
-    ax_res.set_ylabel("Energy Resolution")
-    ax_res.grid(which="both")
-    ax_res.legend()
+    ax.set_title("Energy Resolution")
+    ax.set_xlabel(r"$E_{True}$ / TeV")
+    ax.set_ylabel("Energy Resolution")
+    ax.grid(which="both")
+    ax.legend()
+    return [fig]
+
+
+def plot_energy(irfs_path):
+    edisp_table = EnergyDispersion2D.read(irfs_path, hdu="ENERGY DISPERSION")
+    fov_centers = edisp_table.axes["offset"].center
+
+    fig_bias, ax_bias = plt.subplots(1, 1)
+    fig_mat, ax_mat = plt.subplots(1, 1)
 
     # Energy Bias
     edisp_table.plot_bias(
@@ -158,10 +161,7 @@ def plot_energy(irfs_path, benchmarks_path):
     ax_mat.set_xlabel(r"$E_{True}$ / TeV")
     ax_mat.set_ylabel(r"$E_{Reco}$ / TeV")
 
-    figs.append(fig_res)
-    figs.append(fig_mat)
-    figs.append(fig_bias)
-    return figs
+    return [fig_bias, fig_mat]
 
 
 def plot_background_rate_energy(irfs_path):
@@ -179,7 +179,7 @@ def plot_background_rate_energy(irfs_path):
     ax.set_xlabel(r"$E_\mathrm{Reco}$ / TeV")
     ax.set_ylabel(f"Background rate / {bkg_table.unit}")
     ax.grid(which="both")
-    return fig
+    return [fig]
 
 
 def plot_psf_radius(irfs_path):
@@ -193,7 +193,7 @@ def plot_psf_radius(irfs_path):
     ax.set_xlabel(r"$E_\mathrm{Reco}$ / TeV")
     ax.set_ylabel(r"FoV Offset / $^\circ$")
     ax.grid(which="both")
-    return fig
+    return [fig]
 
 
 def plot_angular_resolution(benchmarks_path):

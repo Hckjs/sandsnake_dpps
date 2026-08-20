@@ -11,6 +11,7 @@ targets:
   rf_particle_classifier: false
   rf_geometry_reconstructor: false
   rf_performance_plots: true
+  cuts: true
   irfs: true
   irfs_plots: true
 
@@ -20,9 +21,9 @@ inputs:
   mc_dl1_merged: null
   mc_dl2: null # Only if all three properties are reconstructed!
   models: null
-  irfs: null
-  benchmarks: null
   cuts: null
+  irfs: null        # Both IRFs, cuts, and
+  benchmarks: null  # benchmarks can be plotted using the "irfs_plots" target
 
 # Gamma MC sample for both cut optimization and IRF computation.
 # "gamma" selects point-like MC; "gamma_diffuse" selects diffuse MC.

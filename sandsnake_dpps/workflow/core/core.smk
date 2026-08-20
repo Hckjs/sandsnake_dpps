@@ -62,10 +62,10 @@ def check_core_targets(config_targets):
         )
 
     if any(
-        target in {"irfs", "irfs_plots"} for target in active_targets
+        target in {"cuts", "irfs", "irfs_plots"} for target in active_targets
     ) and not config.get("obstimes"):
         raise ValueError(
-            "Configured targets 'irfs'/'irfs_plots' require non-empty 'obstimes'"
+            "Configured targets 'cuts'/'irfs'/'irfs_plots' require non-empty 'obstimes'"
         )
 
     if any(target != "mc_simtel" for target in active_targets) and not config.get(
@@ -106,8 +106,9 @@ def resolve_core_targets():
             targets.append(TARGETS_MC_DL2("core", resolve=True))
         elif t == "rf_performance_plots":
             targets.append(TARGETS_RF_PERFORMANCE_PLOTS("core", resolve=True))
-        elif t == "irfs":
+        elif t == "cuts":
             targets.append(TARGETS_CUTS("core", resolve=True))
+        elif t == "irfs":
             targets.append(TARGETS_IRFS("core", resolve=True))
             targets.append(TARGETS_BENCHMARKS("core", resolve=True))
         elif t == "irfs_plots":
