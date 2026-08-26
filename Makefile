@@ -17,6 +17,13 @@ all: | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
+test_intercept: | $(BUILD_DIR)
+	echo "===  Test Timing intercept on Full Array ==="; \
+	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
+		--config build_dir="$(BUILD_DIR)" \
+		--configfile "$(THESIS_CONFIG_ROOT)/configs/timing_intercept/core_analysis_config.yaml" \
+		$(SNAKEFLAGS); \
+
 thesis: | $(BUILD_DIR)
 	echo "=== [1/3] Tailcuts Image Cleaning Full Array ==="; \
 	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
