@@ -107,7 +107,8 @@ ShowerProcessor:
       # `parameters` which is a `ctapipe.containers.ImageParametersContainer`
       # for the current event
       quality_criteria:
-        - [enough intensity, "parameters.hillas.intensity > 50"]
+        - [enough intensity, "parameters.hillas.intensity > 80"]
         - [Positive width, "parameters.hillas.width.value > 0"]
+        - [Positive length, "parameters.hillas.length.value > 0"]
         - [enough pixels, "parameters.morphology.n_pixels > 3"]
-        - [not clipped, "parameters.leakage.intensity_width_2 < 0.5"]
+        - [not clipped, "parameters.leakage.intensity_width_2 < 0.2"]
