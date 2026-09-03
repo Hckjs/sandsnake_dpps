@@ -376,12 +376,13 @@ def calc_max_obstime(
     return np.nan * u.h, observable_mask
 
 
-def get_B_direction(dec: u.Quantity, incl: u.Quantity) -> np.ndarray:
-    """Compute normalized geomagnetic field direction in local ENU coordinates."""
-    Bx = np.cos(incl) * np.sin(dec)
-    By = np.cos(incl) * np.cos(dec)
-    Bz = -np.sin(incl)
-    B = np.array([Bx, By, Bz], dtype=float)
+def get_B_direction(dec, incl):
+    """Compute normalized geomagnetic field direction in local NEU coordinates."""
+    B_north = np.cos(incl) * np.cos(dec)
+    B_east = np.cos(incl) * np.sin(dec)
+    B_up = -np.sin(incl)
+
+    B = np.array([B_north, B_east, B_up], dtype=float)
     return B / np.linalg.norm(B)
 
 
