@@ -30,6 +30,7 @@ from scipy.optimize import curve_fit
 from core.scripts.mc.irf_plots import add_sensitivity_comparisons
 from common.plotting.colors import CTAO_COLORS
 from plugins.fermi.scripts.process_catalog import (
+    CATALOG_NAMES,
     VisibilityConfig,
     get_B_direction,
 )
@@ -331,6 +332,22 @@ class Source:
 
         self.ebl_model = ebl_model
 
+        if "catalog" not in self.table.colnames:
+            raise ValueError(
+                f"Source table {self.path} is missing required column 'catalog'"
+            )
+        self.catalog = str(self.row["catalog"])
+        valid_catalogs = {
+            CATALOG_NAMES["4FGL"],
+            CATALOG_NAMES["3FHL"],
+            CATALOG_NAMES["4FHL"],
+        }
+        if self.catalog not in valid_catalogs:
+            raise ValueError(
+                f"Unknown catalog {self.catalog!r} in {self.path}; "
+                f"expected one of {sorted(valid_catalogs)}"
+            )
+
         self.position = SkyCoord(
             self.row["RAJ2000"],
             self.row["DEJ2000"],
@@ -406,9 +423,8 @@ class Source:
         return None
 
     def _create_base_spectral_model(self):
-        spec_type = str(self.row["SpectrumType"])
-
-        if "FHL" in str(self.row["Source_Name"]):
+        if self.catalog == CATALOG_NAMES["3FHL"]:
+            spec_type = str(self.row["SpectrumType"])
             if spec_type == "PowerLaw":
                 return PowerLawSpectralModel(
                     amplitude=self.row["Flux_Density"] / u.ph,
@@ -425,10 +441,11 @@ class Source:
                 )
 
             raise ValueError(
-                f"Spectral model {spec_type!r} not implemented for FHL source"
+                f"Spectral model {spec_type!r} not implemented for 3FHL source"
             )
 
-        if "FGL" in str(self.row["Source_Name"]):
+        if self.catalog == CATALOG_NAMES["4FGL"]:
+            spec_type = str(self.row["SpectrumType"])
             if spec_type == "PowerLaw":
                 return PowerLawSpectralModel(
                     amplitude=self.row["PL_Flux_Density"] / u.ph,
@@ -458,8 +475,34 @@ class Source:
 
             raise ValueError(f"Spectral model {spec_type!r} not implemented")
 
+        if self.catalog == CATALOG_NAMES["4FHL"]:
+            reference = 100 * u.GeV
+            energy_min = 50 * u.GeV
+            energy_max = 2 * u.TeV
+            flux50 = u.Quantity(self.row["Flux50"], copy=False)
+            if flux50.unit == u.dimensionless_unscaled:
+                flux50 = flux50 * u.Unit("cm-2 s-1")
+            flux50 = flux50.to("cm-2 s-1")
+            if not np.isfinite(flux50.value) or flux50 <= 0 * flux50.unit:
+                raise ValueError(f"Invalid 4FHL Flux50 for {self.name}: {flux50}")
+
+            model = PowerLawSpectralModel(
+                amplitude=1 * u.Unit("cm-2 s-1 TeV-1"),
+                reference=reference,
+                index=float(self.row["PL_Index"]),
+            )
+            scale = (flux50 / model.integral(energy_min, energy_max)).to_value("")
+            model.amplitude.value *= scale
+            integrated_flux = model.integral(energy_min, energy_max)
+            if not u.isclose(integrated_flux, flux50, rtol=1e-10):
+                raise ValueError(
+                    f"4FHL power-law normalization failed for {self.name}: "
+                    f"integral={integrated_flux}, Flux50={flux50}"
+                )
+            return model
+
         raise ValueError(
-            f"Unknown Catalog for source name {self.name} for spectral model creation"
+            f"Unknown catalog {self.catalog!r} for spectral model creation"
         )
 
     def _create_cutoff_model(self, redshift: float):
@@ -886,13 +929,19 @@ class SourceAnalysis:
 
         3FHL:
             10 GeV - 2 TeV, 5 bins.
-        """
-        source_name = self.source.name
 
-        if "FHL" in source_name:
+        4FHL:
+            50 GeV - 2 TeV, 3 bins.
+        """
+        catalog = self.source.catalog
+
+        if catalog == CATALOG_NAMES["3FHL"]:
             edges = [10, 20, 50, 150, 500, 2000] * u.GeV
 
-        elif "FGL" in source_name:
+        elif catalog == CATALOG_NAMES["4FHL"]:
+            edges = [50, 171, 585, 2000] * u.GeV
+
+        elif catalog == CATALOG_NAMES["4FGL"]:
             edges = [
                 50,
                 100,
@@ -906,16 +955,12 @@ class SourceAnalysis:
             ] * u.MeV
 
         else:
-            log.warning(
-                "%s: cannot infer Fermi flux-point energy bins from source name",
-                source_name,
-            )
-            return None
+            raise ValueError(f"Unknown catalog {catalog!r} for Fermi flux-point bins")
 
         if len(edges) != n_bins + 1:
             log.warning(
                 "%s: expected %d flux-point edges for %d bins, got %d edges",
-                source_name,
+                self.source.name,
                 n_bins + 1,
                 n_bins,
                 len(edges),
@@ -932,6 +977,9 @@ class SourceAnalysis:
         uncertainties and upper-limit values.
         """
         row = self.source.row
+
+        if self.source.catalog == CATALOG_NAMES["4FHL"]:
+            return self._fermi_flux_points_from_4fhl_row()
 
         required = {"Flux_Band", "Unc_Flux_Band", "Sqrt_TS_Band"}
         if not required.issubset(row.colnames):
@@ -986,10 +1034,85 @@ class SourceAnalysis:
         if np.any(invalid_ul):
             e2dnde_ul[invalid_ul] = e2dnde[invalid_ul]
 
-        catalog_label = "3FHL" if "FHL" in self.source.name else "4FGL"
+        catalog_label = {
+            CATALOG_NAMES["4FGL"]: "4FGL-DR4",
+            CATALOG_NAMES["3FHL"]: "3FHL",
+        }[self.source.catalog]
 
         return {
             "catalog_label": catalog_label,
+            "e_ref": e_ref,
+            "xerr": xerr,
+            "e2dnde": e2dnde,
+            "e2dnde_errn": e2dnde_errn,
+            "e2dnde_errp": e2dnde_errp,
+            "e2dnde_ul": e2dnde_ul,
+            "sqrt_ts": sqrt_ts,
+            "is_ul": is_ul,
+        }
+
+    def _fermi_flux_points_from_4fhl_row(self) -> dict[str, Any] | None:
+        """Convert the three 4FHL integral-flux bands to differential SED points."""
+        row = self.source.row
+        flux_columns = (
+            "Flux50_171GeV",
+            "Flux171_585GeV",
+            "Flux585_2000GeV",
+        )
+        error_columns = (
+            "Unc_Flux50_171GeV",
+            "Unc_Flux171_585GeV",
+            "Unc_Flux585_2000GeV",
+        )
+        sqrt_ts_columns = (
+            "Sqrt_TS50_171GeV",
+            "Sqrt_TS171_585GeV",
+            "Sqrt_TS585_2000GeV",
+        )
+        required = set(flux_columns + error_columns + sqrt_ts_columns)
+        if not required.issubset(row.colnames):
+            return None
+
+        flux = u.Quantity(
+            [u.Quantity(row[column], copy=False).value for column in flux_columns],
+            u.Unit("cm-2 s-1"),
+        )
+        flux_err = u.Quantity(
+            [u.Quantity(row[column], copy=False).value for column in error_columns],
+            u.Unit("cm-2 s-1"),
+        )
+        sqrt_ts = np.asarray([row[column] for column in sqrt_ts_columns], dtype=float)
+        edges = self._fermi_flux_point_energy_edges(len(flux))
+        e_min, e_max = edges[:-1], edges[1:]
+        e_ref = np.sqrt(e_min * e_max)
+
+        unit_model = PowerLawSpectralModel(
+            amplitude=1 * u.Unit("cm-2 s-1 TeV-1"),
+            reference=100 * u.GeV,
+            index=float(row["PL_Index"]),
+        )
+        conversion = (
+            e_ref**2 * unit_model(e_ref) / unit_model.integral(e_min, e_max)
+        ).to(u.erg)
+        e2dnde = (flux * conversion).to("erg cm-2 s-1")
+        e2dnde_error = (flux_err * conversion).to("erg cm-2 s-1")
+        e2dnde_errn = e2dnde_error.copy()
+        e2dnde_errp = e2dnde_error.copy()
+        is_ul = (
+            ~np.isfinite(e2dnde.value)
+            | ~np.isfinite(e2dnde_errn.value)
+            | (sqrt_ts < 1.0)
+        )
+        e2dnde_ul = e2dnde + 2.0 * e2dnde_errp
+        xerr = u.Quantity(
+            [
+                (e_ref - e_min).to_value(u.TeV),
+                (e_max - e_ref).to_value(u.TeV),
+            ],
+            u.TeV,
+        )
+        return {
+            "catalog_label": "4FHL",
             "e_ref": e_ref,
             "xerr": xerr,
             "e2dnde": e2dnde,
@@ -1083,15 +1206,14 @@ class SourceAnalysis:
         if self.source.spectral_models is None:
             raise ValueError("Source has no spectral model(s) to plot")
 
-        if "FGL" in self.source.name:
+        if self.source.catalog == CATALOG_NAMES["4FGL"]:
             e_lim = [5.0e-5, 1.0e3]
             if energy_bounds is None:
                 energy_bounds = [5.0e-5, 100.0] * u.TeV
-        elif "FHL" in self.source.name:
-            e_lim = [5.0e-3, 1.0e3]
-            if energy_bounds is None:
-                energy_bounds = [5.0e-3, 100.0] * u.TeV
-        else:
+        elif self.source.catalog in {
+            CATALOG_NAMES["3FHL"],
+            CATALOG_NAMES["4FHL"],
+        }:
             e_lim = [5.0e-3, 1.0e3]
             if energy_bounds is None:
                 energy_bounds = [5.0e-3, 100.0] * u.TeV

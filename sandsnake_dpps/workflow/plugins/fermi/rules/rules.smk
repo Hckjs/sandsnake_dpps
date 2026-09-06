@@ -31,9 +31,10 @@ checkpoint process_catalog:
     output:
         priors=PATHS["fermi:template:catalog_out_dirs"] + "/redshift_priors.ecsv",
     input:
-        fgl=FERMI_CATALOGS["FGL"],
-        lac=FERMI_CATALOGS["LAC"],
-        fhl=FERMI_CATALOGS["FHL"],
+        fgl=FERMI_CATALOGS["4FGL"],
+        lac=FERMI_CATALOGS["4LAC"],
+        fhl3=FERMI_CATALOGS["3FHL"],
+        fhl4=FERMI_CATALOGS["4FHL"],
         script=FERMI_SCRIPTS_DIR / "process_catalog.py",
     params:
         outdir=lambda wc: PATHS["fermi:template:catalog_out_dirs"].format(
@@ -51,7 +52,7 @@ checkpoint process_catalog:
             50,
         ),
     wildcard_constraints:
-        catalog="4FGL_DR4|3FHL_DR3",
+        catalog="4FGL_DR4|3FHL|4FHL",
     conda:
         select_env("plotting", "core")
     resources:
@@ -82,7 +83,8 @@ rule merge_sources:
         PATHS["fermi:merged_source_significances"],
     input:
         fgl_sources=fermi_source_significance_provider("4FGL_DR4"),
-        fhl_sources=fermi_source_significance_provider("3FHL_DR3"),
+        fhl3_sources=fermi_source_significance_provider("3FHL"),
+        fhl4_sources=fermi_source_significance_provider("4FHL"),
     conda:
         select_env("plotting", "core")
     resources:

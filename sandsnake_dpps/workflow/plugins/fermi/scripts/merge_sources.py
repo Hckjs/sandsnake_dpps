@@ -10,6 +10,7 @@ def merge_catalog_group(
     group_name: str,
     *,
     overwrite: bool,
+    expected_catalog: str,
 ) -> None:
     rows = []
 
@@ -17,6 +18,15 @@ def merge_catalog_group(
         table = QTable.read(source, format="ascii.ecsv")
         if len(table) == 0:
             raise ValueError(f"Input table is empty: {source}")
+        if "catalog" not in table.colnames:
+            raise ValueError(
+                f"Input table is missing required column 'catalog': {source}"
+            )
+        if str(table[0]["catalog"]) != expected_catalog:
+            raise ValueError(
+                f"Input table {source} has catalog {table[0]['catalog']!r}; "
+                f"expected {expected_catalog!r}"
+            )
         rows.append(table[0])
 
     if not rows:
@@ -36,15 +46,17 @@ def merge_catalog_group(
 def main(
     output_file: str,
     fgl_sources: Sequence[str],
-    fhl_sources: Sequence[str],
+    fhl3_sources: Sequence[str],
+    fhl4_sources: Sequence[str],
 ) -> None:
     catalogs = {
-        "FGL": list(fgl_sources),
-        "FHL": list(fhl_sources),
+        "4FGL": ("4FGL_DR4", list(fgl_sources)),
+        "3FHL": ("3FHL", list(fhl3_sources)),
+        "4FHL": ("4FHL", list(fhl4_sources)),
     }
 
     first = True
-    for name, sources in catalogs.items():
+    for name, (expected_catalog, sources) in catalogs.items():
         if not sources:
             continue
 
@@ -53,6 +65,7 @@ def main(
             output_file=output_file,
             group_name=name,
             overwrite=first,
+            expected_catalog=expected_catalog,
         )
         first = False
 
@@ -68,10 +81,16 @@ def parse_args() -> argparse.Namespace:
         help="Input ECSV files for the FGL group.",
     )
     parser.add_argument(
-        "--fhl-sources",
+        "--fhl3-sources",
         nargs="*",
         default=[],
-        help="Input ECSV files for the FHL group.",
+        help="Input ECSV files for the 3FHL group.",
+    )
+    parser.add_argument(
+        "--fhl4-sources",
+        nargs="*",
+        default=[],
+        help="Input ECSV files for the 4FHL group.",
     )
     parser.add_argument(
         "-o",
@@ -86,7 +105,8 @@ def main_from_snakemake(snakemake) -> None:
     main(
         output_file=snakemake.output[0],
         fgl_sources=snakemake.input.fgl_sources,
-        fhl_sources=snakemake.input.fhl_sources,
+        fhl3_sources=snakemake.input.fhl3_sources,
+        fhl4_sources=snakemake.input.fhl4_sources,
     )
 
 
@@ -94,7 +114,8 @@ def main_from_args(args: argparse.Namespace) -> None:
     main(
         output_file=args.output,
         fgl_sources=args.fgl_sources,
-        fhl_sources=args.fhl_sources,
+        fhl3_sources=args.fhl3_sources,
+        fhl4_sources=args.fhl4_sources,
     )
 
 
