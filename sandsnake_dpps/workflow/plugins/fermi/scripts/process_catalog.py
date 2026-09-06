@@ -28,9 +28,10 @@ except ImportError:  # allows direct execution from plugins/fermi/scripts
 
 
 CATALOG_NAMES = {
-    "FGL": "4FGL_DR4",
-    "LAC": "4LAC_DR3",
-    "FHL": "3FHL_DR3",
+    "4FGL": "4FGL_DR4",
+    "4LAC": "4LAC_DR3",
+    "3FHL": "3FHL",
+    "4FHL": "4FHL",
 }
 
 LAC_COLUMNS_TO_APPEND = [
@@ -432,16 +433,21 @@ def read_and_prepare_catalogs(
     catalog: str,
     fgl_path: str | Path,
     lac_path: str | Path,
-    fhl_path: str | Path,
+    fhl3_path: str | Path,
+    fhl4_path: str | Path,
 ) -> tuple[QTable, QTable]:
-    for cat_path in [fgl_path, lac_path, fhl_path]:
+    for cat_path in [fgl_path, lac_path, fhl3_path, fhl4_path]:
         if not Path(cat_path).exists():
             raise FileNotFoundError(f"Catalog file not found: {cat_path}")
 
-    if catalog not in {CATALOG_NAMES["FGL"], CATALOG_NAMES["FHL"]}:
+    valid_catalogs = {
+        CATALOG_NAMES["4FGL"],
+        CATALOG_NAMES["3FHL"],
+        CATALOG_NAMES["4FHL"],
+    }
+    if catalog not in valid_catalogs:
         raise ValueError(
-            f"Not a valid catalog: {catalog}. "
-            f"Valid ones are {[CATALOG_NAMES['FGL'], CATALOG_NAMES['FHL']]}"
+            f"Not a valid catalog: {catalog}. Valid ones are {sorted(valid_catalogs)}"
         )
 
     lac_table = QTable.read(lac_path, hdu=1)
@@ -453,7 +459,7 @@ def read_and_prepare_catalogs(
         ["Source_Name", "ASSOC_FHL"],
     )
 
-    if catalog == CATALOG_NAMES["FGL"]:
+    if catalog == CATALOG_NAMES["4FGL"]:
         catalog_table = fgl_table.copy()
 
         lac_table["is_LAC_Source"] = True
@@ -466,7 +472,7 @@ def read_and_prepare_catalogs(
             lac_subtable,
             keys="Source_Name",
             join_type="left",
-            table_names=["FGL", "LAC"],
+            table_names=["4FGL", "4LAC"],
         )
 
         for col in LAC_COLUMNS_TO_APPEND:
@@ -479,13 +485,42 @@ def read_and_prepare_catalogs(
             else:
                 catalog_table[col] = catalog_table[col].filled(np.nan)
 
-    else:
-        catalog_table = QTable.read(fhl_path, hdu=1)
+    elif catalog == CATALOG_NAMES["3FHL"]:
+        catalog_table = QTable.read(fhl3_path, hdu=1)
         catalog_table, _ = trim_source_names(catalog_table, ["Source_Name"])
 
-    catalog_table["is_extended_source"] = [
-        is_extended_catalog_source(row) for row in catalog_table
-    ]
+    elif catalog == CATALOG_NAMES["4FHL"]:
+        catalog_table = QTable.read(fhl4_path, hdu="4FHL Source Catalog")
+        extended_table = QTable.read(fhl4_path, hdu="Extended Sources")
+        catalog_table, _ = trim_source_names(
+            catalog_table, ["Source_Name", "4FGL", "2FHL", "3FHL", "TeV"]
+        )
+        extended_table, _ = trim_source_names(extended_table, ["Source_Name"])
+
+        main_names = list(catalog_table["Source_Name"])
+        extended_names = list(extended_table["Source_Name"])
+        if len(set(main_names)) != len(main_names):
+            raise ValueError("4FHL main catalog contains duplicate Source_Name values")
+        if len(set(extended_names)) != len(extended_names):
+            raise ValueError(
+                "4FHL extended catalog contains duplicate Source_Name values"
+            )
+        unmatched = sorted(set(extended_names) - set(main_names))
+        if unmatched:
+            raise ValueError(
+                "4FHL Extended Sources Source_Name values missing from the main "
+                f"catalog: {unmatched}"
+            )
+        extended_name_set = set(extended_names)
+        catalog_table["is_extended_source"] = [
+            name in extended_name_set for name in main_names
+        ]
+
+    if "is_extended_source" not in catalog_table.colnames:
+        catalog_table["is_extended_source"] = [
+            is_extended_catalog_source(row) for row in catalog_table
+        ]
+    catalog_table["catalog"] = catalog
     ensure_redshift_prior_input_columns(catalog_table)
     return catalog_table[:], src_names_fgl_assoc_fhl[:]
 
@@ -569,16 +604,16 @@ def create_catalog_symlinks(
     outpath: Path,
     src_names_fgl_assoc_fhl: QTable,
 ) -> None:
-    if catalog == CATALOG_NAMES["FGL"]:
+    if catalog == CATALOG_NAMES["4FGL"]:
         if "ASSOC_FHL" not in source_row.colnames:
             return
         assoc_fhl = clean_source_name(source_row["ASSOC_FHL"])
         if assoc_fhl:
-            dest_dir = outpath.parent / CATALOG_NAMES["FHL"] / assoc_fhl
+            dest_dir = outpath.parent / CATALOG_NAMES["3FHL"] / assoc_fhl
             link_dir = outpath / source_name / assoc_fhl
             symlink_force(dest_dir, link_dir)
 
-    if catalog == CATALOG_NAMES["FHL"]:
+    if catalog == CATALOG_NAMES["3FHL"]:
         if "ASSOC_FHL" not in src_names_fgl_assoc_fhl.colnames:
             return
         src_names_fhl = [
@@ -591,8 +626,21 @@ def create_catalog_symlinks(
             idx = src_names_fhl.index(source_name)
             src_name_fgl = src_names_fgl[idx]
             if src_name_fgl:
-                dest_dir = outpath.parent / CATALOG_NAMES["FGL"] / src_name_fgl
+                dest_dir = outpath.parent / CATALOG_NAMES["4FGL"] / src_name_fgl
                 link_dir = outpath / source_name / src_name_fgl
+                symlink_force(dest_dir, link_dir)
+
+    if catalog == CATALOG_NAMES["4FHL"]:
+        for association, destination_catalog in (
+            ("4FGL", CATALOG_NAMES["4FGL"]),
+            ("3FHL", CATALOG_NAMES["3FHL"]),
+        ):
+            if association not in source_row.colnames:
+                continue
+            associated_name = clean_source_name(source_row[association])
+            if associated_name:
+                dest_dir = outpath.parent / destination_catalog / associated_name
+                link_dir = outpath / source_name / associated_name
                 symlink_force(dest_dir, link_dir)
 
 
@@ -644,7 +692,8 @@ def main(
     catalog: str,
     fgl_path: str | Path,
     lac_path: str | Path,
-    fhl_path: str | Path,
+    fhl3_path: str | Path,
+    fhl4_path: str | Path,
     outdir: str | Path,
     *,
     start: str = "2027-04-01",
@@ -674,7 +723,8 @@ def main(
         catalog=catalog,
         fgl_path=fgl_path,
         lac_path=lac_path,
-        fhl_path=fhl_path,
+        fhl3_path=fhl3_path,
+        fhl4_path=fhl4_path,
     )
 
     catalog_table = add_redshift_priors(
@@ -708,10 +758,13 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Prepare per-source Fermi catalog files for the CTAO significance workflow."
     )
-    parser.add_argument("--catalog", required=True, choices=["4FGL_DR4", "3FHL_DR3"])
+    parser.add_argument(
+        "--catalog", required=True, choices=["4FGL_DR4", "3FHL", "4FHL"]
+    )
     parser.add_argument("--fgl", required=True)
     parser.add_argument("--lac", required=True)
-    parser.add_argument("--fhl", required=True)
+    parser.add_argument("--fhl3", required=True)
+    parser.add_argument("--fhl4", required=True)
     parser.add_argument("-o", "--outdir", required=True)
 
     parser.add_argument("--start", default="2027-04-01")
@@ -732,7 +785,8 @@ def main_from_snakemake(snakemake) -> None:
         catalog=snakemake.wildcards.catalog,
         fgl_path=snakemake.input.fgl,
         lac_path=snakemake.input.lac,
-        fhl_path=snakemake.input.fhl,
+        fhl3_path=snakemake.input.fhl3,
+        fhl4_path=snakemake.input.fhl4,
         outdir=snakemake.params.outdir,
         start=snakemake.params.start,
         end=snakemake.params.end,
@@ -750,7 +804,8 @@ def main_from_args(args: argparse.Namespace) -> None:
         catalog=args.catalog,
         fgl_path=args.fgl,
         lac_path=args.lac,
-        fhl_path=args.fhl,
+        fhl3_path=args.fhl3,
+        fhl4_path=args.fhl4,
         outdir=args.outdir,
         start=args.start,
         end=args.end,

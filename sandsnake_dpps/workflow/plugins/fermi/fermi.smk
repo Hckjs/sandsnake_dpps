@@ -39,10 +39,9 @@ def resolve_fermi_targets():
         if t == "merged_source_significances":
             fermi_targets.append(PATHS["fermi:merged_source_significances"])
         if t == "processed_sources":
-            catalogs = ["4FGL_DR4", "3FHL_DR3"]
             tar = expand(
                 PATHS["fermi:template:catalog_out_dirs"] + "/redshift_priors.ecsv",
-                catalog=catalogs,
+                catalog=FERMI_SOURCE_CATALOGS,
             )
             fermi_targets.extend(tar)
 
