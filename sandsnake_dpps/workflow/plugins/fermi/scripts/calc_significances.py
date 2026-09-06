@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass
 from enum import StrEnum
@@ -37,6 +38,7 @@ from plugins.fermi.scripts.process_catalog import (
 
 
 site_params = VisibilityConfig()
+log = logging.getLogger(__name__)
 REFERENCE_OBSTIME_H = 50.0
 
 
