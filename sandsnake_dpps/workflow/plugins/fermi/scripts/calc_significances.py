@@ -606,9 +606,9 @@ class SourceAnalysis:
         solid_angle = 2.0 * np.pi * (1.0 - np.cos(theta.value)) * u.sr
         bkg_rate = observation.bkg.evaluate(energy=energy, offset=source_offset)
         livetime = observation.observation_live_time_duration
-        background_counts = (
-            bkg_rate * energy_width * livetime * solid_angle
-        ).to_value("")
+        background_counts = (bkg_rate * energy_width * livetime * solid_angle).to_value(
+            ""
+        )
         background_counts = np.asarray(background_counts, dtype=float).reshape(-1)
         background_counts[~np.isfinite(background_counts)] = 0.0
         background_counts[background_counts < 0.0] = 0.0
