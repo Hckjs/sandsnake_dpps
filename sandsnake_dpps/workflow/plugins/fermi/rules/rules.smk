@@ -49,7 +49,7 @@ checkpoint process_catalog:
         redshift_upper_quantile=REDSHIFT_PRIOR_CONFIG.get("upper_quantile", 0.84),
         redshift_min_sources_per_group=REDSHIFT_PRIOR_CONFIG.get(
             "min_sources_per_group",
-            50,
+            20,
         ),
     wildcard_constraints:
         catalog="4FGL_DR4|3FHL|4FHL",

@@ -65,7 +65,7 @@ class RedshiftPriorConfig:
     redshift_column: str = "Redshift"
     lower_quantile: float = 0.16
     upper_quantile: float = 0.84
-    min_sources_per_group: int = 50
+    min_sources_per_group: int = 20
 
 
 def normalize_label(value) -> str:

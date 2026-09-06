@@ -18,4 +18,4 @@ process_catalog:
 redshift_priors:
   lower_quantile: 0.16
   upper_quantile: 0.84
-  min_sources_per_group: 50
+  min_sources_per_group: 20

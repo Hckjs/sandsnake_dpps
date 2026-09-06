@@ -531,7 +531,7 @@ def add_redshift_priors(
     *,
     lower_quantile: float = 0.16,
     upper_quantile: float = 0.84,
-    min_sources_per_group: int = 50,
+    min_sources_per_group: int = 20,
 ) -> QTable:
     ensure_redshift_prior_input_columns(catalog_table)
 
@@ -703,7 +703,7 @@ def main(
     write_plots: bool = False,
     lower_quantile: float = 0.16,
     upper_quantile: float = 0.84,
-    min_sources_per_group: int = 50,
+    min_sources_per_group: int = 20,
 ) -> None:
     """
     Process a Fermi-LAT catalog and compute per-source catalog products.
