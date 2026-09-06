@@ -68,8 +68,8 @@ rule calc_significances:
     input:
         source=fermi_source_provider,
         priors=fermi_priors_provider,
-        irfs=TARGETS_IRFS("core", resolve=True),
-        benchmarks=TARGETS_BENCHMARKS("core", resolve=True),
+        irfs=TARGETS_IRFS("core", resolve=True, obstime_filter=50),
+        benchmarks=TARGETS_BENCHMARKS("core", resolve=True, obstime_filter=50),
     conda:
         select_env("plotting", "core")
     resources:

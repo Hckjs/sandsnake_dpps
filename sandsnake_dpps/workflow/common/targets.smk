@@ -149,25 +149,27 @@ def TARGETS_CUTS(base: str, resolve: bool):
     return target_path
 
 
-def TARGETS_IRFS(base: str, resolve: bool):
+def TARGETS_IRFS(base: str, resolve: bool, obstime_filter=None):
     target_path = PATHS[f"{base}:irfs"] + PATHS["core:template:irfs"]
     if resolve:
         return [
             target_path.format(zen=zen, az=az, obstime=obstime)
             for zen, az in pointings
             for obstime in obstimes
+            if obstime_filter is None or float(obstime) == float(obstime_filter)
         ]
 
     return target_path
 
 
-def TARGETS_BENCHMARKS(base: str, resolve: bool):
+def TARGETS_BENCHMARKS(base: str, resolve: bool, obstime_filter=None):
     target_path = PATHS[f"{base}:irfs"] + PATHS["core:template:benchmarks"]
     if resolve:
         return [
             target_path.format(zen=zen, az=az, obstime=obstime)
             for zen, az in pointings
             for obstime in obstimes
+            if obstime_filter is None or float(obstime) == float(obstime_filter)
         ]
 
     return target_path
