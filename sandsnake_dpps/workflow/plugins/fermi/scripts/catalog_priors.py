@@ -116,9 +116,9 @@ def get_prior_group(row, config: RedshiftPriorConfig) -> str:
 
     - bll  -> bll
     - fsrq -> fsrq
-    - bcu + no SED_class -> bll
     - bcu + HSP/ISP     -> bll
     - bcu + LSP         -> fsrq
+    - bcu + no SED_class -> no prior
 
     All other classes get no prior group.
     """
@@ -135,7 +135,7 @@ def get_prior_group(row, config: RedshiftPriorConfig) -> str:
         return RedshiftSource.PRIOR_FSRQ
 
     if source_class == "bcu":
-        if sed_class in {"", "hsp", "isp"}:
+        if sed_class in {"hsp", "isp"}:
             return RedshiftSource.PRIOR_BLL
 
         if sed_class == "lsp":
