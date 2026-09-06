@@ -1,0 +1,41 @@
+run_tag: "hillas_reconstructor"
+user_config_dir: ./examples/thesis/configs/hillas_reconstructor
+user_env_dir: ./examples/thesis/envs
+
+targets:
+  mc_simtel: false
+  mc_dl1: false
+  mc_dl1_merged: false
+  mc_dl2: false
+  rf_energy_regressor: false
+  rf_particle_classifier: false
+  rf_geometry_reconstructor: false
+  rf_performance_plots: false
+  irfs: true
+  irfs_plots: true
+
+inputs:
+  mc_simtel: null
+  mc_dl1: null
+  mc_dl1_merged: ./build/full_array/mc/dl1_merged
+  mc_dl2: null # Only if all three properties are reconstructed!
+  models: null
+  irfs: null
+  benchmarks: null
+  cuts: null
+
+irfs:
+  gamma_particle: gamma
+
+# [zen, az]
+pointings:
+  - [20, 180]
+
+obstimes: # hours
+  - 50
+
+# RF training split
+train_size: 0.5
+cuts_size: 0.5
+
+plugins: []

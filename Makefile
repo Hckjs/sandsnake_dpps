@@ -18,17 +18,23 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 thesis: | $(BUILD_DIR)
-	echo "=== [1/3] Tailcuts Image Cleaning Full Array ==="; \
-	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
-		--config build_dir="$(BUILD_DIR)" \
-		--configfile "$(THESIS_CONFIG_ROOT)/configs/tailcuts_image_cleaning/core_analysis_config.yaml" \
-		$(SNAKEFLAGS); \
-	echo "=== [2/3] Full Array ==="; \
+	set -e; \
+	echo "=== [1/4] Full Array ==="; \
 	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
 		--config build_dir="$(BUILD_DIR)" \
 		--configfile "$(THESIS_CONFIG_ROOT)/configs/full_array/core_analysis_config.yaml" \
 		$(SNAKEFLAGS); \
-	echo "=== [3/3] Subarrays ==="; \
+	echo "=== [2/4] HillasReconstructor ==="; \
+	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
+		--config build_dir="$(BUILD_DIR)" \
+		--configfile "$(THESIS_CONFIG_ROOT)/configs/hillas_reconstructor/core_analysis_config.yaml" \
+		$(SNAKEFLAGS); \
+	echo "=== [3/4] Tailcuts Image Cleaning Full Array ==="; \
+	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
+		--config build_dir="$(BUILD_DIR)" \
+		--configfile "$(THESIS_CONFIG_ROOT)/configs/tailcuts_image_cleaning/core_analysis_config.yaml" \
+		$(SNAKEFLAGS); \
+	echo "=== [4/4] Subarrays ==="; \
 	for subarray_dir in "$(THESIS_CONFIG_ROOT)"/configs/subarrays/*; do \
 		[ -d "$$subarray_dir" ] || continue; \
 		echo "--- Subarray: $$subarray_dir ---"; \
