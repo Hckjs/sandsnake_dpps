@@ -11,7 +11,7 @@ This directory contains local copies of the Fermi-LAT catalog FITS files used by
 | `4LAC_DR3_L.fits`      | 4LAC-DR3 | Fourth LAT AGN Catalog, Data Release 3, low-latitude sources  | `table-4LAC-DR3-l.fits` |
 | `4LAC_DR3_merged.fits` | 4LAC-DR3 | Merged high- and low-latitude 4LAC-DR3 catalog with an additional `LAC_sample` column indicating the source catalog | derived locally |
 | `3FHL.fit`             | 3FHL     | Third Fermi-LAT Catalog of High-Energy Sources                | `gll_psch_v13.fit`      |
-| `4FHL.fit`             | 4FHL     | Fourth Fermi-LAT Catalog of High-Energy Sources               | 4FHL FSSC FITS release  |
+| `4FHL.fit`             | 4FHL     | Fourth Fermi-LAT Catalog of High-Energy Sources               | `gll_psch_v14.fit`      |
 
 ## Source
 
