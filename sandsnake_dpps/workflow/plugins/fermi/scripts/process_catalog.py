@@ -333,6 +333,22 @@ def clean_source_name(value) -> str:
     return normalize_missing_string(value).replace(" ", "_")
 
 
+def is_extended_catalog_source(row) -> bool:
+    """Return whether the Fermi extended-source catalog field is populated."""
+    column = next(
+        (
+            name
+            for name in row.colnames
+            if name.lower().replace("_", "") == "extendedsourcename"
+        ),
+        None,
+    )
+    if column is None:
+        return False
+
+    return bool(normalize_missing_string(row[column]))
+
+
 def trim_source_names(table: QTable, columns: list[str]) -> tuple[QTable, QTable]:
     for col in columns:
         if col not in table.colnames:
@@ -467,6 +483,9 @@ def read_and_prepare_catalogs(
         catalog_table = QTable.read(fhl_path, hdu=1)
         catalog_table, _ = trim_source_names(catalog_table, ["Source_Name"])
 
+    catalog_table["is_extended_source"] = [
+        is_extended_catalog_source(row) for row in catalog_table
+    ]
     ensure_redshift_prior_input_columns(catalog_table)
     return catalog_table[:], src_names_fgl_assoc_fhl[:]
 

@@ -29,7 +29,10 @@ from scipy.optimize import curve_fit
 
 from core.scripts.mc.irf_plots import add_sensitivity_comparisons
 from common.plotting.colors import CTAO_COLORS
-from plugins.fermi.scripts.process_catalog import VisibilityConfig, get_B_direction
+from plugins.fermi.scripts.process_catalog import (
+    VisibilityConfig,
+    get_B_direction,
+)
 from plugins.fermi.scripts.catalog_priors import RedshiftSource, SourceOrigin
 from enum import StrEnum
 
@@ -41,6 +44,7 @@ log = logging.getLogger(__name__)
 class AnalysisStatus(StrEnum):
     NOT_RUN = "not_run"
     SUCCESS = "success"
+    EXTENDED_SOURCE = "extended_source"
     NOT_OBSERVABLE = "not_observable"
     UNKNOWN_ORIGIN = "unknown_origin"
     NO_USABLE_REDSHIFT = "no_usable_redshift"
@@ -335,8 +339,17 @@ class Source:
         )
         self.origin = self.row["z_class"]
         self.z_source = self.row["z_source"]
-        self.redshift_scenarios = self._resolve_redshift_scenarios()
-        self.spectral_models = self._create_spectral_model()
+        ext_value = self.row["is_extended_source"]
+        self.is_extended_source = (
+            False if np.ma.is_masked(ext_value) else bool(ext_value)
+        )
+
+        if self.is_extended_source:
+            self.redshift_scenarios = None
+            self.spectral_models = None
+        else:
+            self.redshift_scenarios = self._resolve_redshift_scenarios()
+            self.spectral_models = self._create_spectral_model()
 
     @property
     def row(self):
@@ -1192,6 +1205,10 @@ def normalize_label(value) -> str:
 
 
 def source_validity_check(source: Source, output_table: QTable) -> bool:
+    if source.is_extended_source:
+        output_table["status"] = [AnalysisStatus.EXTENDED_SOURCE]
+        return False
+
     if not (
         np.isfinite(source.row["cos_theta_mean"])
         and np.isfinite(source.row["sin_delta_mean"])
