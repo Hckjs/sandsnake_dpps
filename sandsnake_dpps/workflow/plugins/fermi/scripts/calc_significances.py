@@ -46,6 +46,7 @@ class AnalysisStatus(StrEnum):
     NOT_RUN = "not_run"
     SUCCESS = "success"
     EXTENDED_SOURCE = "extended_source"
+    MISSING_SPECTRAL_PARAMETERS = "missing_spectral_parameters"
     NOT_OBSERVABLE = "not_observable"
     UNKNOWN_ORIGIN = "unknown_origin"
     NO_USABLE_REDSHIFT = "no_usable_redshift"
@@ -335,8 +336,19 @@ class Source:
         self.is_extended_source = (
             False if np.ma.is_masked(ext_value) else bool(ext_value)
         )
+        self.analysis_status = AnalysisStatus.NOT_RUN
+        self.missing_spectral_parameter = self._missing_4fhl_spectral_parameter()
 
         if self.is_extended_source:
+            self.redshift_scenarios = None
+            self.spectral_models = None
+        elif self.missing_spectral_parameter is not None:
+            self.analysis_status = AnalysisStatus.MISSING_SPECTRAL_PARAMETERS
+            log.info(
+                "Skipping %s: missing or invalid 4FHL %s",
+                self.name,
+                self.missing_spectral_parameter,
+            )
             self.redshift_scenarios = None
             self.spectral_models = None
         else:
@@ -374,6 +386,32 @@ class Source:
     @property
     def has_prior_redshift_scenarios(self) -> bool:
         return self.z_source in [RedshiftSource.PRIOR_BLL, RedshiftSource.PRIOR_FSRQ]
+
+    @staticmethod
+    def _is_invalid_number(value, *, positive: bool = False) -> bool:
+        """Return whether a catalog scalar cannot be used as a model parameter."""
+        if value is None or np.ma.is_masked(value):
+            return True
+
+        try:
+            quantity = u.Quantity(value, copy=False)
+            numeric_value = quantity.value
+            return not np.all(np.isfinite(numeric_value)) or (
+                positive and np.any(numeric_value <= 0)
+            )
+        except (TypeError, ValueError):
+            return True
+
+    def _missing_4fhl_spectral_parameter(self) -> str | None:
+        """Identify an unusable 4FHL parameter without coercing masked values."""
+        if self.catalog != CATALOG_NAMES["4FHL"]:
+            return None
+
+        if self._is_invalid_number(self.row["PL_Index"]):
+            return "PL_Index"
+        if self._is_invalid_number(self.row["Flux50"], positive=True):
+            return "Flux50"
+        return None
 
     def _resolve_redshift_scenarios(self) -> list[RedshiftScenario] | None:
         if self.has_prior_redshift_scenarios:
@@ -453,22 +491,30 @@ class Source:
         if self.catalog == CATALOG_NAMES["4FHL"]:
             reference = 0.1 * u.TeV
             energy_min = 0.05 * u.TeV
-            energy_max = 2 * u.TeV
+            energy_max = 2.0 * u.TeV
+
+            # Validation happens before model creation in ``__init__``. Keep this
+            # guard for direct/private calls so masked scalars are never coerced.
+            missing_parameter = self._missing_4fhl_spectral_parameter()
+            if missing_parameter is not None:
+                return None
 
             flux50 = u.Quantity(self.row["Flux50"], copy=False)
 
+            catalog_flux_unit = u.ph / (u.cm**2 * u.s)
+
             if flux50.unit == u.dimensionless_unscaled:
-                flux50 = flux50.value * u.Unit("ph cm-2 s-1")
+                flux50 = flux50.value * catalog_flux_unit
 
-            flux50 = flux50.to_value(u.ph / (u.cm**2 * u.s)) * u.Unit("cm-2 s-1")
-
-            if not np.isfinite(flux50.value) or flux50 <= 0 * flux50.unit:
-                raise ValueError(f"Invalid 4FHL Flux50 for {self.name}: {flux50}")
+            # Gammapy's photon-flux convention omits the explicit photon unit.
+            # Remove it only after checking/converting the catalog unit, keeping
+            # the numerical catalog value unchanged.
+            flux50 = flux50.to_value(catalog_flux_unit) * u.Unit("cm-2 s-1")
 
             model = PowerLawSpectralModel(
                 amplitude=1 * u.Unit("cm-2 s-1 TeV-1"),
                 reference=reference,
-                index=float(self.row["PL_Index"]),
+                index=float(u.Quantity(self.row["PL_Index"], copy=False).value),
             )
 
             scale = (flux50 / model.integral(energy_min, energy_max)).to_value("")
@@ -1138,6 +1184,10 @@ def normalize_label(value) -> str:
 def source_validity_check(source: Source, output_table: QTable) -> bool:
     if source.is_extended_source:
         output_table["status"] = [AnalysisStatus.EXTENDED_SOURCE]
+        return False
+
+    if source.analysis_status == AnalysisStatus.MISSING_SPECTRAL_PARAMETERS:
+        output_table["status"] = [AnalysisStatus.MISSING_SPECTRAL_PARAMETERS]
         return False
 
     if not (
