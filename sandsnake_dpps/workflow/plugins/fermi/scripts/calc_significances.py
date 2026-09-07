@@ -451,8 +451,8 @@ class Source:
             raise ValueError(f"Spectral model {spec_type!r} not implemented")
 
         if self.catalog == CATALOG_NAMES["4FHL"]:
-            reference = 100 * u.GeV
-            energy_min = 50 * u.GeV
+            reference = 0.1 * u.TeV
+            energy_min = 0.05 * u.TeV
             energy_max = 2 * u.TeV
 
             flux50 = u.Quantity(self.row["Flux50"], copy=False)
@@ -460,8 +460,6 @@ class Source:
             if flux50.unit == u.dimensionless_unscaled:
                 flux50 = flux50.value * u.Unit("ph cm-2 s-1")
 
-            # Fermi explicitly stores the photon unit "ph", while Gammapy
-            # represents photon fluxes without it.
             flux50 = flux50.to_value(u.ph / (u.cm**2 * u.s)) * u.Unit("cm-2 s-1")
 
             if not np.isfinite(flux50.value) or flux50 <= 0 * flux50.unit:
@@ -476,7 +474,8 @@ class Source:
             scale = (flux50 / model.integral(energy_min, energy_max)).to_value("")
             model.amplitude.value *= scale
 
-            integrated_flux = model.integral(energy_min, energy_max)
+            integrated_flux = model.integral(energy_min, energy_max).to("cm-2 s-1")
+
             if not u.isclose(integrated_flux, flux50, rtol=1e-10):
                 raise ValueError(
                     f"4FHL power-law normalization failed for {self.name}: "
