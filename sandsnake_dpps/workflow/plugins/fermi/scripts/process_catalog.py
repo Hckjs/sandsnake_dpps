@@ -522,7 +522,7 @@ def read_and_prepare_catalogs(
         ]
     catalog_table["catalog"] = catalog
     ensure_redshift_prior_input_columns(catalog_table)
-    return catalog_table[:], src_names_fgl_assoc_fhl[:]
+    return catalog_table[:100], src_names_fgl_assoc_fhl[:100]
 
 
 def add_redshift_priors(

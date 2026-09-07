@@ -1,4 +1,4 @@
-PROFILE ?= ./sandsnake_dpps/profiles/vollmond
+PROFILE ?= ./sandsnake_dpps/profiles/local
 CONFIG ?= ./examples/core_analysis_config.yaml
 BUILD_DIR ?= build
 
@@ -24,25 +24,25 @@ thesis: | $(BUILD_DIR)
 		--config build_dir="$(BUILD_DIR)" \
 		--configfile "$(THESIS_CONFIG_ROOT)/configs/full_array/core_analysis_config.yaml" \
 		$(SNAKEFLAGS); \
-	echo "=== [2/4] HillasReconstructor ==="; \
-	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
-		--config build_dir="$(BUILD_DIR)" \
-		--configfile "$(THESIS_CONFIG_ROOT)/configs/hillas_reconstructor/core_analysis_config.yaml" \
-		$(SNAKEFLAGS); \
-	echo "=== [3/4] Tailcuts Image Cleaning Full Array ==="; \
-	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
-		--config build_dir="$(BUILD_DIR)" \
-		--configfile "$(THESIS_CONFIG_ROOT)/configs/tailcuts_image_cleaning/core_analysis_config.yaml" \
-		$(SNAKEFLAGS); \
-	echo "=== [4/4] Subarrays ==="; \
-	for subarray_dir in "$(THESIS_CONFIG_ROOT)"/configs/subarrays/*; do \
-		[ -d "$$subarray_dir" ] || continue; \
-		echo "--- Subarray: $$subarray_dir ---"; \
-		snakemake $(SNAKEFILE) $(PROFILEFLAG) \
-			--config build_dir="$(BUILD_DIR)" \
-			--configfile "$$subarray_dir/core_analysis_config.yaml" \
-			$(SNAKEFLAGS); \
-	done
+	#echo "=== [2/4] HillasReconstructor ==="; \
+	#snakemake $(SNAKEFILE) $(PROFILEFLAG) \
+	#	--config build_dir="$(BUILD_DIR)" \
+	#	--configfile "$(THESIS_CONFIG_ROOT)/configs/hillas_reconstructor/core_analysis_config.yaml" \
+	#	$(SNAKEFLAGS); \
+	#echo "=== [3/4] Tailcuts Image Cleaning Full Array ==="; \
+	#snakemake $(SNAKEFILE) $(PROFILEFLAG) \
+	#	--config build_dir="$(BUILD_DIR)" \
+	#	--configfile "$(THESIS_CONFIG_ROOT)/configs/tailcuts_image_cleaning/core_analysis_config.yaml" \
+	#	$(SNAKEFLAGS); \
+	#echo "=== [4/4] Subarrays ==="; \
+	#for subarray_dir in "$(THESIS_CONFIG_ROOT)"/configs/subarrays/*; do \
+	#	[ -d "$$subarray_dir" ] || continue; \
+	#	echo "--- Subarray: $$subarray_dir ---"; \
+	#	snakemake $(SNAKEFILE) $(PROFILEFLAG) \
+	#		--config build_dir="$(BUILD_DIR)" \
+	#		--configfile "$$subarray_dir/core_analysis_config.yaml" \
+	#		$(SNAKEFLAGS); \
+	#done
 
 # Removes build directory
 clean:
