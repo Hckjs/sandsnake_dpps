@@ -30,7 +30,6 @@ irfs:
 # [zen, az]
 pointings:
   - [20, 180]
-  - [20, 0]
 
 obstimes: # hours
   - 50
