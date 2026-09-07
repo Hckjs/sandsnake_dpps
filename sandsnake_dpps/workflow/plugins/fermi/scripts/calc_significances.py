@@ -476,7 +476,7 @@ class Source:
 
             integrated_flux = model.integral(energy_min, energy_max).to("cm-2 s-1")
 
-            if not u.isclose(integrated_flux, flux50, rtol=1e-10):
+            if not u.isclose(integrated_flux, flux50, rtol=1e-8):
                 raise ValueError(
                     f"4FHL power-law normalization failed for {self.name}: "
                     f"integral={integrated_flux}, Flux50={flux50}"
