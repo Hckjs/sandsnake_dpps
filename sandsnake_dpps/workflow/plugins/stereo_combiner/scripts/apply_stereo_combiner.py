@@ -5,7 +5,7 @@ from tqdm.auto import tqdm
 
 from ctapipe.io import DataWriter, HDF5EventSource
 from ctapipe.io.tableio import TelListToMaskTransform
-from ctapipe.reco.reconstructor import ReconstructionProperty
+from ctapipe.reco.reconstructor import ReconstructionProperty, StereoQualityQuery
 
 from plugins.stereo_combiner.scripts.stereo_combiner import StereoCombiner
 
@@ -107,7 +107,10 @@ def main(input, output, combiner):
         )
 
     # Explicitly use the same telescope-quality criteria for all combiners.
-    stereo_combiner.quality_query.quality_criteria = QUALITY_CRITERIA
+    stereo_combiner.quality_query = StereoQualityQuery(
+        parent=stereo_combiner,
+        quality_criteria=QUALITY_CRITERIA,
+    )
 
     with (
         HDF5EventSource(input_url=input) as source,
