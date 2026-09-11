@@ -388,19 +388,23 @@ class Source:
         return self.z_source in [RedshiftSource.PRIOR_BLL, RedshiftSource.PRIOR_FSRQ]
 
     @staticmethod
-    def _is_invalid_number(value, *, positive: bool = False) -> bool:
-        """Return whether a catalog scalar cannot be used as a model parameter."""
+    def _is_invalid_number(value, *, positive=False):
         if value is None or np.ma.is_masked(value):
             return True
 
         try:
-            quantity = u.Quantity(value, copy=False)
+            quantity = u.Quantity(value)
             numeric_value = quantity.value
-            return not np.all(np.isfinite(numeric_value)) or (
-                positive and np.any(numeric_value <= 0)
-            )
         except (TypeError, ValueError):
             return True
+
+        if not np.all(np.isfinite(numeric_value)):
+            return True
+
+        if positive and np.any(numeric_value <= 0):
+            return True
+
+        return False
 
     def _missing_4fhl_spectral_parameter(self) -> str | None:
         """Identify an unusable 4FHL parameter without coercing masked values."""
