@@ -503,7 +503,7 @@ class Source:
             if missing_parameter is not None:
                 return None
 
-            flux50 = u.Quantity(self.row["Flux50"], copy=False)
+            flux50 = u.Quantity(self.row["Flux50"])
 
             catalog_flux_unit = u.ph / (u.cm**2 * u.s)
 
@@ -518,7 +518,7 @@ class Source:
             model = PowerLawSpectralModel(
                 amplitude=1 * u.Unit("cm-2 s-1 TeV-1"),
                 reference=reference,
-                index=float(u.Quantity(self.row["PL_Index"], copy=False).value),
+                index=float(u.Quantity(self.row["PL_Index"]).value),
             )
 
             scale = (flux50 / model.integral(energy_min, energy_max)).to_value("")
@@ -778,7 +778,7 @@ class SourceAnalysis:
     @staticmethod
     def _row_quantity(row, column: str, default_unit: str | u.Unit) -> u.Quantity:
         value = row[column]
-        quantity = u.Quantity(value, copy=False)
+        quantity = u.Quantity(value)
 
         values = np.ma.filled(quantity.value, np.nan)
         unit = quantity.unit
@@ -943,11 +943,11 @@ class SourceAnalysis:
             return None
 
         flux = u.Quantity(
-            [u.Quantity(row[column], copy=False).value for column in flux_columns],
+            [u.Quantity(row[column]).value for column in flux_columns],
             u.Unit("cm-2 s-1"),
         )
         flux_err = u.Quantity(
-            [u.Quantity(row[column], copy=False).value for column in error_columns],
+            [u.Quantity(row[column]).value for column in error_columns],
             u.Unit("cm-2 s-1"),
         )
         sqrt_ts = np.asarray([row[column] for column in sqrt_ts_columns], dtype=float)
