@@ -1,7 +1,7 @@
 STEREO_COMBINER_DIR = PLUGINS_DIR / "stereo_combiner"
 STEREO_COMBINER_SCRIPTS_DIR = STEREO_COMBINER_DIR / "scripts"
 
-STEREO_COMBINER_OUTDIR = f'{OUTDIRS["plugins"]}/stero_combiner'
+STEREO_COMBINER_OUTDIR = f'{OUTDIRS["plugins"]}/stereo_combiner'
 STEREO_COMBINER_PATHS = {
     "mc_dl2": STEREO_COMBINER_OUTDIR
     + "/mc/dl2/zen_20/az_180/{particle}"
